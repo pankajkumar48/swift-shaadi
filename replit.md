@@ -48,6 +48,9 @@ Before the app can work, you MUST create the database tables in Supabase:
 
 Without running this SQL, the app will show "Database error" messages.
 
+### If you already have tables set up:
+Run `supabase_update_guests.sql` to add the `accompanying_count` column to the guests table.
+
 ## URL Structure
 - `/` - Landing page (marketing, public)
 - `/app` - Main app entry (shows auth if not logged in, then dashboard)

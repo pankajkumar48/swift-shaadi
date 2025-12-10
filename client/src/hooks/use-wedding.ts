@@ -91,6 +91,7 @@ export function useGuestsQuery(weddingId: string | null) {
   return useQuery<Array<{
     id: string;
     name: string;
+    accompanying_count: number;
     phone?: string;
     email?: string;
     side: string;
@@ -104,7 +105,7 @@ export function useGuestsQuery(weddingId: string | null) {
 
 export function useCreateGuestMutation() {
   return useMutation({
-    mutationFn: async ({ weddingId, ...data }: { weddingId: string; name: string; side: string; phone?: string; email?: string; group?: string; rsvp_status?: string }) => {
+    mutationFn: async ({ weddingId, ...data }: { weddingId: string; name: string; accompanying_count?: number; side: string; phone?: string; email?: string; group?: string; rsvp_status?: string }) => {
       const res = await apiRequest("POST", `/api/weddings/${weddingId}/guests`, data);
       return res.json();
     },

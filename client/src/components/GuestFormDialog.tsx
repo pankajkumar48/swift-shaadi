@@ -27,6 +27,7 @@ import type { RsvpStatus, Side } from "@/components/GuestCard";
 
 interface GuestFormData {
   name: string;
+  accompanyingCount: number;
   phone: string;
   email: string;
   side: Side;
@@ -52,6 +53,7 @@ export default function GuestFormDialog({
   const form = useForm<GuestFormData>({
     defaultValues: {
       name: "",
+      accompanyingCount: 0,
       phone: "",
       email: "",
       side: "bride",
@@ -65,6 +67,7 @@ export default function GuestFormDialog({
     if (open && initialData) {
       form.reset({
         name: "",
+        accompanyingCount: 0,
         phone: "",
         email: "",
         side: "bride",
@@ -75,6 +78,7 @@ export default function GuestFormDialog({
     } else if (open && !initialData) {
       form.reset({
         name: "",
+        accompanyingCount: 0,
         phone: "",
         email: "",
         side: "bride",
@@ -104,9 +108,31 @@ export default function GuestFormDialog({
               rules={{ required: "Name is required" }}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>Name *</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter guest name" {...field} data-testid="input-guest-name" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="accompanyingCount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Accompanying Members</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      min="0"
+                      placeholder="0" 
+                      {...field} 
+                      value={field.value || 0}
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      data-testid="input-guest-accompanying" 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

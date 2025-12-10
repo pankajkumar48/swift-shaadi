@@ -19,6 +19,7 @@ import { useWedding, useGuestsQuery, useCreateGuestMutation, useUpdateGuestMutat
 interface Guest {
   id: string;
   name: string;
+  accompanyingCount: number;
   phone?: string;
   email?: string;
   side: Side;
@@ -45,6 +46,7 @@ export default function Guests() {
   const guests: Guest[] = (guestsData || []).map(g => ({
     id: g.id,
     name: g.name,
+    accompanyingCount: g.accompanying_count || 0,
     phone: g.phone,
     email: g.email,
     side: g.side as Side,
@@ -84,6 +86,7 @@ export default function Guests() {
       await createGuestMutation.mutateAsync({
         weddingId,
         name: guest.name,
+        accompanying_count: guest.accompanyingCount,
         phone: guest.phone,
         email: guest.email,
         side: guest.side,
@@ -104,6 +107,7 @@ export default function Guests() {
         id: editingGuest.id,
         weddingId,
         name: guest.name,
+        accompanying_count: guest.accompanyingCount,
         phone: guest.phone,
         email: guest.email,
         side: guest.side,

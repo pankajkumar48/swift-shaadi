@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS guests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   wedding_id UUID NOT NULL REFERENCES weddings(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
+  accompanying_count INTEGER NOT NULL DEFAULT 0,
   phone TEXT,
   email TEXT,
   side TEXT NOT NULL CHECK (side IN ('bride', 'groom')),

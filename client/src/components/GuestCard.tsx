@@ -16,6 +16,7 @@ export type Side = "bride" | "groom";
 interface GuestCardProps {
   id: string;
   name: string;
+  accompanyingCount?: number;
   phone?: string;
   email?: string;
   side: Side;
@@ -41,6 +42,7 @@ const sideConfig: Record<Side, { label: string; className: string }> = {
 export default function GuestCard({
   id,
   name,
+  accompanyingCount = 0,
   phone,
   email,
   side,
@@ -57,6 +59,10 @@ export default function GuestCard({
     .toUpperCase()
     .slice(0, 2);
 
+  const displayName = accompanyingCount > 0 
+    ? `${name} + ${accompanyingCount} member${accompanyingCount > 1 ? 's' : ''}`
+    : name;
+
   return (
     <Card className="p-4" data-testid={`card-guest-${id}`}>
       <div className="flex items-start gap-3">
@@ -70,7 +76,7 @@ export default function GuestCard({
           <div className="flex items-start justify-between gap-2">
             <div>
               <h3 className="font-medium truncate" data-testid={`text-guest-name-${id}`}>
-                {name}
+                {displayName}
               </h3>
               <div className="flex flex-wrap gap-1.5 mt-1.5">
                 <Badge 

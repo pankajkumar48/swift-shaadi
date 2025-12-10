@@ -83,6 +83,7 @@ class TeamMember(TeamMemberBase):
 # Guest Models
 class GuestBase(BaseModel):
     name: str
+    accompanying_count: int = 0
     phone: Optional[str] = None
     email: Optional[str] = None
     side: GuestSide
@@ -96,6 +97,7 @@ class GuestCreate(GuestBase):
 
 class GuestUpdate(BaseModel):
     name: Optional[str] = None
+    accompanying_count: Optional[int] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     side: Optional[GuestSide] = None
