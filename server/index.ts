@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { spawn } from "child_process";
+import { createProxyMiddleware } from "http-proxy-middleware";
 
 const app = express();
 const httpServer = createServer(app);
@@ -30,12 +31,30 @@ process.on("exit", () => {
   fastApiProcess.kill();
 });
 
+// IMPORTANT: Register API proxy BEFORE body parsers to preserve raw body stream
+// This must be done before express.json() parses the request body
+const apiProxy = createProxyMiddleware({
+  target: "http://localhost:8000/api",
+  changeOrigin: true,
+  on: {
+    proxyReq: (proxyReq, req) => {
+      console.log(`[proxy] ${req.method} /api${req.url} -> http://localhost:8000/api${req.url}`);
+    },
+    error: (err, req, res) => {
+      console.error(`[proxy] Error: ${err.message}`);
+    }
+  }
+});
+
+app.use("/api", apiProxy);
+
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;
   }
 }
 
+// Body parsers AFTER proxy to avoid consuming the request body before proxying
 app.use(
   express.json({
     verify: (req, _res, buf) => {
