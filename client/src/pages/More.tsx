@@ -24,9 +24,9 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { icon: MessageSquare, label: "Invitations", path: "/invitations", description: "Generate invitation messages" },
-  { icon: Users, label: "Team", path: "/team", description: "Manage team members & roles" },
-  { icon: Settings, label: "Settings", path: "/settings", description: "Wedding settings & profile" },
+  { icon: MessageSquare, label: "Invitations", path: "/app/invitations", description: "Generate invitation messages" },
+  { icon: Users, label: "Team", path: "/app/team", description: "Manage team members & roles" },
+  { icon: Settings, label: "Settings", path: "/app/settings", description: "Wedding settings & profile" },
 ];
 
 const premiumFeatures = [

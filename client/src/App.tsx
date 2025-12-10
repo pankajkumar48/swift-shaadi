@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -21,20 +22,20 @@ import More from "@/pages/More";
 import Auth from "@/pages/Auth";
 import CreateWedding from "@/pages/CreateWedding";
 
-type AppState = "landing" | "loading" | "auth" | "create-wedding" | "app";
+type AppState = "loading" | "auth" | "create-wedding" | "app";
 
-function AppContent() {
-  const [appState, setAppState] = useState<AppState>("landing");
-  const [hasClickedOpenApp, setHasClickedOpenApp] = useState(false);
-  const [currentPath, setCurrentPath] = useState("/");
+function MainApp() {
+  const [location, setLocation] = useLocation();
+  const [appState, setAppState] = useState<AppState>("loading");
   const [wedding, setWedding] = useState<Wedding | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  const currentPath = location.startsWith("/app") ? location : "/app";
+
   const { data: authData, isLoading: authLoading, error: authError, isError: authIsError } = useQuery<{ user: User } | null>({
     queryKey: ["/api/auth/me"],
     retry: false,
-    enabled: hasClickedOpenApp,
   });
 
   const { data: weddings, isLoading: weddingsLoading, isError: weddingsIsError } = useQuery<Wedding[]>({
@@ -44,11 +45,6 @@ function AppContent() {
   });
 
   useEffect(() => {
-    if (!hasClickedOpenApp) {
-      setAppState("landing");
-      return;
-    }
-
     if (authLoading) {
       setAppState("loading");
       return;
@@ -87,11 +83,7 @@ function AppContent() {
       setWedding(weddings[0]);
     }
     setAppState("app");
-  }, [authData, authLoading, authError, authIsError, weddings, weddingsLoading, weddingsIsError, wedding, hasClickedOpenApp]);
-
-  const handleOpenApp = () => {
-    setHasClickedOpenApp(true);
-  };
+  }, [authData, authLoading, authError, authIsError, weddings, weddingsLoading, weddingsIsError, wedding]);
 
   const handleAuth = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
@@ -103,7 +95,8 @@ function AppContent() {
   };
 
   const handleNavigate = (path: string) => {
-    setCurrentPath(path);
+    const appPath = path.startsWith("/app") ? path : `/app${path === "/" ? "" : path}`;
+    setLocation(appPath);
   };
 
   const handleLogout = async () => {
@@ -117,16 +110,8 @@ function AppContent() {
     setWedding(null);
     setIsAuthenticated(false);
     setAppState("auth");
+    setLocation("/");
   };
-
-  if (appState === "landing") {
-    return (
-      <>
-        <Landing onOpenApp={handleOpenApp} />
-        <Toaster />
-      </>
-    );
-  }
 
   if (appState === "loading") {
     return (
@@ -157,29 +142,19 @@ function AppContent() {
     );
   }
 
-  const renderPage = () => {
-    switch (currentPath) {
-      case "/":
-        return <Dashboard onNavigate={handleNavigate} />;
-      case "/guests":
-        return <Guests />;
-      case "/timeline":
-        return <Timeline />;
-      case "/tasks":
-        return <Tasks />;
-      case "/budget":
-        return <Budget />;
-      case "/invitations":
-        return <Invitations />;
-      case "/team":
-        return <Team />;
-      case "/settings":
-        return <Settings onNavigate={handleNavigate} onLogout={handleLogout} />;
-      case "/more":
-        return <More onNavigate={handleNavigate} />;
-      default:
-        return <Dashboard onNavigate={handleNavigate} />;
+  const getPageFromPath = () => {
+    if (currentPath === "/app" || currentPath === "/app/") {
+      return <Dashboard onNavigate={handleNavigate} />;
     }
+    if (currentPath === "/app/guests") return <Guests />;
+    if (currentPath === "/app/timeline") return <Timeline />;
+    if (currentPath === "/app/tasks") return <Tasks />;
+    if (currentPath === "/app/budget") return <Budget />;
+    if (currentPath === "/app/invitations") return <Invitations />;
+    if (currentPath === "/app/team") return <Team />;
+    if (currentPath === "/app/settings") return <Settings onNavigate={handleNavigate} onLogout={handleLogout} />;
+    if (currentPath === "/app/more") return <More onNavigate={handleNavigate} />;
+    return <Dashboard onNavigate={handleNavigate} />;
   };
 
   return (
@@ -187,11 +162,11 @@ function AppContent() {
       <div className="min-h-screen bg-background" data-testid="app-container">
         <Header 
           weddingName={wedding?.couple_names || "Your Wedding"}
-          onSettingsClick={() => handleNavigate("/settings")}
+          onSettingsClick={() => handleNavigate("/app/settings")}
           onNotificationsClick={() => console.log("Notifications")}
         />
         <main className="pb-16">
-          {renderPage()}
+          {getPageFromPath()}
         </main>
         <BottomNav 
           currentPath={currentPath} 
@@ -200,6 +175,32 @@ function AppContent() {
       </div>
       <Toaster />
     </WeddingContext.Provider>
+  );
+}
+
+function LandingPage() {
+  const [, setLocation] = useLocation();
+  
+  const handleOpenApp = () => {
+    setLocation("/app");
+  };
+
+  return (
+    <>
+      <Landing onOpenApp={handleOpenApp} />
+      <Toaster />
+    </>
+  );
+}
+
+function AppContent() {
+  return (
+    <Switch>
+      <Route path="/" component={LandingPage} />
+      <Route path="/app" component={MainApp} />
+      <Route path="/app/:rest*" component={MainApp} />
+      <Route component={LandingPage} />
+    </Switch>
   );
 }
 

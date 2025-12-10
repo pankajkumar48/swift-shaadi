@@ -48,11 +48,23 @@ Before the app can work, you MUST create the database tables in Supabase:
 
 Without running this SQL, the app will show "Database error" messages.
 
+## URL Structure
+- `/` - Landing page (marketing, public)
+- `/app` - Main app entry (shows auth if not logged in, then dashboard)
+- `/app/guests` - Guest management
+- `/app/timeline` - Timeline/events
+- `/app/tasks` - Task planner
+- `/app/budget` - Budget tracker
+- `/app/invitations` - Invitation templates
+- `/app/team` - Team management
+- `/app/settings` - Settings
+- `/app/more` - More options menu
+
 ## User Flow
-1. **Landing Page** - Marketing page with features, pricing, testimonials, FAQ
-2. **Auth** - Login/Signup with email and password
-3. **Create Wedding** - Set up wedding with couple names, date, city
-4. **Dashboard** - Main app with bottom navigation for all features
+1. **Landing Page** (`/`) - Marketing page with features, pricing, testimonials, FAQ
+2. **Auth** (`/app`) - Login/Signup with email and password
+3. **Create Wedding** (`/app`) - Set up wedding with couple names, date, city
+4. **Dashboard** (`/app`) - Main app with bottom navigation for all features
 
 ## Features (MVP)
 - Landing page with marketing content and CTA
