@@ -4,6 +4,7 @@ from typing import Optional
 import uuid
 import hashlib
 import os
+import traceback
 
 from .database import supabase
 from .models import (
@@ -17,6 +18,11 @@ from .models import (
 )
 
 app = FastAPI(title="Swift Shaadi API", version="1.0.0")
+
+# Log errors for debugging
+def log_error(context: str, error: Exception):
+    print(f"[ERROR] {context}: {str(error)}")
+    traceback.print_exc()
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,28 +45,48 @@ def get_current_user(session_id: Optional[str] = Cookie(None, alias="session_id"
     return sessions[session_id]
 
 
+# Health check endpoint
+@app.get("/api/health")
+async def health_check():
+    try:
+        result = supabase.table("users").select("id").limit(1).execute()
+        return {"status": "ok", "database": "connected"}
+    except Exception as e:
+        log_error("health_check", e)
+        return {"status": "error", "database": "disconnected", "message": str(e)}
+
+
 # Auth Routes
 @app.post("/api/auth/signup")
 async def signup(user: UserCreate, response: Response):
-    existing = supabase.table("users").select("*").eq("email", user.email).execute()
-    if existing.data:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    user_id = str(uuid.uuid4())
-    new_user = {
-        "id": user_id,
-        "name": user.name,
-        "email": user.email,
-        "password": hash_password(user.password),
-    }
-    
-    result = supabase.table("users").insert(new_user).execute()
-    
-    session_id = str(uuid.uuid4())
-    sessions[session_id] = user_id
-    response.set_cookie("session_id", session_id, httponly=True)
-    
-    return {"user": {"id": user_id, "name": user.name, "email": user.email}}
+    try:
+        existing = supabase.table("users").select("id").eq("email", user.email).execute()
+        if existing.data:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        
+        user_id = str(uuid.uuid4())
+        new_user = {
+            "id": user_id,
+            "name": user.name,
+            "email": user.email,
+            "password": hash_password(user.password),
+        }
+        
+        result = supabase.table("users").insert(new_user).execute()
+        
+        if not result.data:
+            raise HTTPException(status_code=500, detail="Failed to create user")
+        
+        session_id = str(uuid.uuid4())
+        sessions[session_id] = user_id
+        response.set_cookie("session_id", session_id, httponly=True, samesite="lax")
+        
+        return {"user": {"id": user_id, "name": user.name, "email": user.email}}
+    except HTTPException:
+        raise
+    except Exception as e:
+        log_error("signup", e)
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
 @app.post("/api/auth/login")

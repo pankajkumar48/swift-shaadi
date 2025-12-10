@@ -8,10 +8,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import GuestCard, { RsvpStatus, Side } from "@/components/GuestCard";
 import EmptyState from "@/components/EmptyState";
 import GuestFormDialog from "@/components/GuestFormDialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { useWedding, useGuestsQuery, useCreateGuestMutation, useUpdateGuestMutation, useDeleteGuestMutation } from "@/hooks/use-wedding";
 
 interface Guest {
   id: string;
@@ -24,20 +27,30 @@ interface Guest {
 }
 
 export default function Guests() {
+  const { toast } = useToast();
+  const { wedding } = useWedding();
+  const weddingId = wedding?.id || null;
+
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sideFilter, setSideFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  // todo: remove mock data - replace with real API data
-  const [guests, setGuests] = useState<Guest[]>([
-    { id: "1", name: "Amit Sharma", phone: "+91 98765 43210", email: "amit@example.com", side: "groom", group: "Family", rsvpStatus: "going" },
-    { id: "2", name: "Priya Patel", phone: "+91 87654 32109", side: "bride", group: "Friends", rsvpStatus: "maybe" },
-    { id: "3", name: "Raj Mehta", phone: "+91 76543 21098", side: "groom", group: "College Friends", rsvpStatus: "invited" },
-    { id: "4", name: "Anita Desai", email: "anita@example.com", side: "bride", group: "Family", rsvpStatus: "going" },
-    { id: "5", name: "Vikram Singh", phone: "+91 65432 10987", side: "groom", group: "Work", rsvpStatus: "not_going" },
-  ]);
+  const { data: guestsData, isLoading } = useGuestsQuery(weddingId);
+  const createGuestMutation = useCreateGuestMutation();
+  const updateGuestMutation = useUpdateGuestMutation();
+  const deleteGuestMutation = useDeleteGuestMutation();
+
+  const guests: Guest[] = (guestsData || []).map(g => ({
+    id: g.id,
+    name: g.name,
+    phone: g.phone,
+    email: g.email,
+    side: g.side as Side,
+    group: g.group,
+    rsvpStatus: g.rsvp_status as RsvpStatus,
+  }));
 
   const filteredGuests = guests.filter((guest) => {
     const matchesSearch = guest.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -46,26 +59,80 @@ export default function Guests() {
     return matchesSearch && matchesSide && matchesStatus;
   });
 
-  const handleStatusChange = (id: string, status: RsvpStatus) => {
-    setGuests(guests.map(g => g.id === id ? { ...g, rsvpStatus: status } : g));
-  };
-
-  const handleDelete = (id: string) => {
-    setGuests(guests.filter(g => g.id !== id));
-  };
-
-  const handleAddGuest = (guest: Omit<Guest, "id">) => {
-    const newGuest: Guest = { ...guest, id: Date.now().toString() };
-    setGuests([...guests, newGuest]);
-    setShowAddDialog(false);
-  };
-
-  const handleEditGuest = (guest: Omit<Guest, "id">) => {
-    if (editingGuest) {
-      setGuests(guests.map(g => g.id === editingGuest.id ? { ...guest, id: editingGuest.id } : g));
-      setEditingGuest(null);
+  const handleStatusChange = async (id: string, status: RsvpStatus) => {
+    if (!weddingId) return;
+    try {
+      await updateGuestMutation.mutateAsync({ id, weddingId, rsvp_status: status });
+    } catch {
+      toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
     }
   };
+
+  const handleDelete = async (id: string) => {
+    if (!weddingId) return;
+    try {
+      await deleteGuestMutation.mutateAsync({ id, weddingId });
+      toast({ title: "Guest deleted" });
+    } catch {
+      toast({ title: "Error", description: "Failed to delete guest", variant: "destructive" });
+    }
+  };
+
+  const handleAddGuest = async (guest: Omit<Guest, "id">) => {
+    if (!weddingId) return;
+    try {
+      await createGuestMutation.mutateAsync({
+        weddingId,
+        name: guest.name,
+        phone: guest.phone,
+        email: guest.email,
+        side: guest.side,
+        group: guest.group,
+        rsvp_status: guest.rsvpStatus,
+      });
+      setShowAddDialog(false);
+      toast({ title: "Guest added successfully" });
+    } catch {
+      toast({ title: "Error", description: "Failed to add guest", variant: "destructive" });
+    }
+  };
+
+  const handleEditGuest = async (guest: Omit<Guest, "id">) => {
+    if (!weddingId || !editingGuest) return;
+    try {
+      await updateGuestMutation.mutateAsync({
+        id: editingGuest.id,
+        weddingId,
+        name: guest.name,
+        phone: guest.phone,
+        email: guest.email,
+        side: guest.side,
+        group: guest.group,
+        rsvp_status: guest.rsvpStatus,
+      });
+      setEditingGuest(null);
+      toast({ title: "Guest updated successfully" });
+    } catch {
+      toast({ title: "Error", description: "Failed to update guest", variant: "destructive" });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-4 pb-20" data-testid="page-guests">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <h2 className="text-xl font-semibold">Guests</h2>
+          <Skeleton className="h-9 w-28" />
+        </div>
+        <div className="space-y-3">
+          <Skeleton className="h-12" />
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 pb-20" data-testid="page-guests">

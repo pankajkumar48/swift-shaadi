@@ -4,6 +4,9 @@ import { Plus, Users } from "lucide-react";
 import TeamMemberCard, { TeamRole } from "@/components/TeamMemberCard";
 import EmptyState from "@/components/EmptyState";
 import TeamMemberFormDialog from "@/components/TeamMemberFormDialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { useWedding, useTeamQuery, useCreateTeamMemberMutation, useUpdateTeamMemberMutation, useDeleteTeamMemberMutation } from "@/hooks/use-wedding";
 
 interface TeamMember {
   id: string;
@@ -13,31 +16,77 @@ interface TeamMember {
 }
 
 export default function Team() {
+  const { toast } = useToast();
+  const { wedding } = useWedding();
+  const weddingId = wedding?.id || null;
+
   const [showAddDialog, setShowAddDialog] = useState(false);
 
-  // todo: remove mock data - replace with real API data
-  const [members, setMembers] = useState<TeamMember[]>([
-    { id: "1", name: "Priya Sharma", email: "priya@example.com", role: "owner" },
-    { id: "2", name: "Rahul Sharma", email: "rahul@example.com", role: "family_admin" },
-    { id: "3", name: "Meera Patel", email: "meera@example.com", role: "helper" },
-    { id: "4", name: "Amit Kumar", email: "amit@example.com", role: "family_admin" },
-  ]);
+  const { data: teamData, isLoading } = useTeamQuery(weddingId);
+  const createTeamMemberMutation = useCreateTeamMemberMutation();
+  const updateTeamMemberMutation = useUpdateTeamMemberMutation();
+  const deleteTeamMemberMutation = useDeleteTeamMemberMutation();
 
-  const currentUserId = "1"; // todo: replace with actual current user
+  const members: TeamMember[] = (teamData || []).map(m => ({
+    id: m.id,
+    name: m.name,
+    email: m.email,
+    role: m.role as TeamRole,
+  }));
 
-  const handleChangeRole = (id: string, role: TeamRole) => {
-    setMembers(members.map(m => m.id === id ? { ...m, role } : m));
+  const ownerMember = members.find(m => m.role === "owner");
+
+  const handleChangeRole = async (id: string, role: TeamRole) => {
+    if (!weddingId) return;
+    try {
+      await updateTeamMemberMutation.mutateAsync({ id, weddingId, role });
+      toast({ title: "Role updated" });
+    } catch {
+      toast({ title: "Error", description: "Failed to update role", variant: "destructive" });
+    }
   };
 
-  const handleRemove = (id: string) => {
-    setMembers(members.filter(m => m.id !== id));
+  const handleRemove = async (id: string) => {
+    if (!weddingId) return;
+    try {
+      await deleteTeamMemberMutation.mutateAsync({ id, weddingId });
+      toast({ title: "Team member removed" });
+    } catch {
+      toast({ title: "Error", description: "Failed to remove member", variant: "destructive" });
+    }
   };
 
-  const handleAddMember = (member: Omit<TeamMember, "id">) => {
-    const newMember: TeamMember = { ...member, id: Date.now().toString() };
-    setMembers([...members, newMember]);
-    setShowAddDialog(false);
+  const handleAddMember = async (member: Omit<TeamMember, "id">) => {
+    if (!weddingId) return;
+    try {
+      await createTeamMemberMutation.mutateAsync({
+        weddingId,
+        name: member.name,
+        email: member.email,
+        role: member.role,
+      });
+      setShowAddDialog(false);
+      toast({ title: "Team member added successfully" });
+    } catch {
+      toast({ title: "Error", description: "Failed to add member", variant: "destructive" });
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-4 pb-20" data-testid="page-team">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <h2 className="text-xl font-semibold">Team</h2>
+          <Skeleton className="h-9 w-32" />
+        </div>
+        <div className="space-y-3">
+          <Skeleton className="h-24" />
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 pb-20" data-testid="page-team">
@@ -75,7 +124,7 @@ export default function Team() {
             <TeamMemberCard
               key={member.id}
               {...member}
-              isCurrentUser={member.id === currentUserId}
+              isCurrentUser={member.id === ownerMember?.id}
               onChangeRole={handleChangeRole}
               onRemove={handleRemove}
             />

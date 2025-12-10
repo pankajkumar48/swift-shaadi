@@ -4,6 +4,9 @@ import { Plus, Calendar } from "lucide-react";
 import EventCard from "@/components/EventCard";
 import EmptyState from "@/components/EmptyState";
 import EventFormDialog from "@/components/EventFormDialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { useWedding, useEventsQuery, useCreateEventMutation, useUpdateEventMutation, useDeleteEventMutation } from "@/hooks/use-wedding";
 
 interface TimelineEvent {
   id: string;
@@ -14,35 +17,87 @@ interface TimelineEvent {
 }
 
 export default function Timeline() {
+  const { toast } = useToast();
+  const { wedding } = useWedding();
+  const weddingId = wedding?.id || null;
+
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
 
-  // todo: remove mock data - replace with real API data
-  const [events, setEvents] = useState<TimelineEvent[]>([
-    { id: "1", name: "Haldi Ceremony", dateTime: new Date("2025-02-14T10:00:00"), location: "Sharma Villa, Mumbai", notes: "Traditional turmeric ceremony for the bride and groom" },
-    { id: "2", name: "Sangeet Night", dateTime: new Date("2025-02-14T19:00:00"), location: "Grand Ballroom, Taj Palace", notes: "Musical evening with performances from both families" },
-    { id: "3", name: "Wedding Ceremony", dateTime: new Date("2025-02-15T18:00:00"), location: "Grand Ballroom, Taj Palace" },
-    { id: "4", name: "Reception", dateTime: new Date("2025-02-16T19:00:00"), location: "Rooftop Garden, Taj Palace", notes: "Cocktails and dinner reception for all guests" },
-  ]);
+  const { data: eventsData, isLoading } = useEventsQuery(weddingId);
+  const createEventMutation = useCreateEventMutation();
+  const updateEventMutation = useUpdateEventMutation();
+  const deleteEventMutation = useDeleteEventMutation();
+
+  const events: TimelineEvent[] = (eventsData || []).map(e => ({
+    id: e.id,
+    name: e.name,
+    dateTime: new Date(e.date_time),
+    location: e.location,
+    notes: e.notes,
+  }));
 
   const sortedEvents = [...events].sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
 
-  const handleDelete = (id: string) => {
-    setEvents(events.filter(e => e.id !== id));
-  };
-
-  const handleAddEvent = (event: Omit<TimelineEvent, "id">) => {
-    const newEvent: TimelineEvent = { ...event, id: Date.now().toString() };
-    setEvents([...events, newEvent]);
-    setShowAddDialog(false);
-  };
-
-  const handleEditEvent = (event: Omit<TimelineEvent, "id">) => {
-    if (editingEvent) {
-      setEvents(events.map(e => e.id === editingEvent.id ? { ...event, id: editingEvent.id } : e));
-      setEditingEvent(null);
+  const handleDelete = async (id: string) => {
+    if (!weddingId) return;
+    try {
+      await deleteEventMutation.mutateAsync({ id, weddingId });
+      toast({ title: "Event deleted" });
+    } catch {
+      toast({ title: "Error", description: "Failed to delete event", variant: "destructive" });
     }
   };
+
+  const handleAddEvent = async (event: Omit<TimelineEvent, "id">) => {
+    if (!weddingId) return;
+    try {
+      await createEventMutation.mutateAsync({
+        weddingId,
+        name: event.name,
+        date_time: event.dateTime.toISOString(),
+        location: event.location,
+        notes: event.notes,
+      });
+      setShowAddDialog(false);
+      toast({ title: "Event added successfully" });
+    } catch {
+      toast({ title: "Error", description: "Failed to add event", variant: "destructive" });
+    }
+  };
+
+  const handleEditEvent = async (event: Omit<TimelineEvent, "id">) => {
+    if (!weddingId || !editingEvent) return;
+    try {
+      await updateEventMutation.mutateAsync({
+        id: editingEvent.id,
+        weddingId,
+        name: event.name,
+        date_time: event.dateTime.toISOString(),
+        location: event.location,
+        notes: event.notes,
+      });
+      setEditingEvent(null);
+      toast({ title: "Event updated successfully" });
+    } catch {
+      toast({ title: "Error", description: "Failed to update event", variant: "destructive" });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-4 pb-20" data-testid="page-timeline">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <h2 className="text-xl font-semibold">Timeline</h2>
+          <Skeleton className="h-9 w-28" />
+        </div>
+        <div className="space-y-3">
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 pb-20" data-testid="page-timeline">

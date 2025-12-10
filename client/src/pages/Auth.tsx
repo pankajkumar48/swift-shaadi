@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Heart, Mail, Lock, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLoginMutation, useSignupMutation } from "@/hooks/use-auth";
 
 interface AuthProps {
   onAuth: () => void;
@@ -13,7 +14,6 @@ interface AuthProps {
 
 export default function Auth({ onAuth }: AuthProps) {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
   
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [signupData, setSignupData] = useState({ 
@@ -23,19 +23,30 @@ export default function Auth({ onAuth }: AuthProps) {
     confirmPassword: "" 
   });
 
+  const loginMutation = useLoginMutation();
+  const signupMutation = useSignupMutation();
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
-    // todo: replace with real API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await loginMutation.mutateAsync({
+        email: loginData.email,
+        password: loginData.password,
+      });
       toast({
         title: "Welcome back!",
         description: "You have been logged in successfully.",
       });
       onAuth();
-    }, 1000);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Login failed";
+      toast({
+        title: "Login failed",
+        description: message.includes("401") ? "Invalid email or password" : message,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -50,18 +61,28 @@ export default function Auth({ onAuth }: AuthProps) {
       return;
     }
     
-    setIsLoading(true);
-    
-    // todo: replace with real API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await signupMutation.mutateAsync({
+        name: signupData.name,
+        email: signupData.email,
+        password: signupData.password,
+      });
       toast({
         title: "Account created!",
         description: "Welcome to Swift Shaadi. Let's plan your wedding!",
       });
       onAuth();
-    }, 1000);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Signup failed";
+      toast({
+        title: "Signup failed",
+        description: message.includes("400") ? "Email already registered" : message,
+        variant: "destructive",
+      });
+    }
   };
+
+  const isLoading = loginMutation.isPending || signupMutation.isPending;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-secondary/20 to-background" data-testid="page-auth">
@@ -121,7 +142,7 @@ export default function Auth({ onAuth }: AuthProps) {
                   </div>
 
                   <Button type="submit" className="w-full" disabled={isLoading} data-testid="button-login">
-                    {isLoading ? "Logging in..." : "Login"}
+                    {loginMutation.isPending ? "Logging in..." : "Login"}
                   </Button>
                 </form>
               </TabsContent>
@@ -197,7 +218,7 @@ export default function Auth({ onAuth }: AuthProps) {
                   </div>
 
                   <Button type="submit" className="w-full" disabled={isLoading} data-testid="button-signup">
-                    {isLoading ? "Creating account..." : "Create Account"}
+                    {signupMutation.isPending ? "Creating account..." : "Create Account"}
                   </Button>
                 </form>
               </TabsContent>

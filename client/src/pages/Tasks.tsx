@@ -11,6 +11,9 @@ import { Plus, CheckSquare } from "lucide-react";
 import TaskCard, { TaskStatus } from "@/components/TaskCard";
 import EmptyState from "@/components/EmptyState";
 import TaskFormDialog from "@/components/TaskFormDialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { useWedding, useTasksQuery, useCreateTaskMutation, useUpdateTaskMutation, useDeleteTaskMutation } from "@/hooks/use-wedding";
 
 interface Task {
   id: string;
@@ -23,47 +26,110 @@ interface Task {
 }
 
 export default function Tasks() {
+  const { toast } = useToast();
+  const { wedding } = useWedding();
+  const weddingId = wedding?.id || null;
+
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  // todo: remove mock data - replace with real API data
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: "1", title: "Finalize catering menu", description: "Review and confirm the menu options with the caterer", dueDate: new Date("2025-01-20"), status: "in_progress", assignee: { name: "Priya", initials: "PS" }, linkedEvent: "Wedding Reception" },
-    { id: "2", title: "Book photographer", dueDate: new Date("2024-12-01"), status: "todo" },
-    { id: "3", title: "Send save-the-dates", status: "done", assignee: { name: "Rahul", initials: "RS" } },
-    { id: "4", title: "Finalize guest list", description: "Collect RSVPs and confirm final headcount", dueDate: new Date("2025-01-15"), status: "in_progress", assignee: { name: "Priya", initials: "PS" } },
-    { id: "5", title: "Order wedding invitations", dueDate: new Date("2025-01-10"), status: "todo", linkedEvent: "Wedding Ceremony" },
-  ]);
+  const { data: tasksData, isLoading } = useTasksQuery(weddingId);
+  const createTaskMutation = useCreateTaskMutation();
+  const updateTaskMutation = useUpdateTaskMutation();
+  const deleteTaskMutation = useDeleteTaskMutation();
+
+  const tasks: Task[] = (tasksData || []).map(t => ({
+    id: t.id,
+    title: t.title,
+    description: t.description,
+    dueDate: t.due_date ? new Date(t.due_date) : undefined,
+    status: t.status as TaskStatus,
+    assignee: t.assignee_name ? { name: t.assignee_name, initials: t.assignee_name.split(" ").map(n => n[0]).join("").toUpperCase() } : undefined,
+    linkedEvent: t.linked_event,
+  }));
 
   const filteredTasks = tasks.filter((task) => {
     return statusFilter === "all" || task.status === statusFilter;
   });
 
-  const handleStatusChange = (id: string, status: TaskStatus) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, status } : t));
+  const handleStatusChange = async (id: string, status: TaskStatus) => {
+    if (!weddingId) return;
+    try {
+      await updateTaskMutation.mutateAsync({ id, weddingId, status });
+    } catch {
+      toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setTasks(tasks.filter(t => t.id !== id));
+  const handleDelete = async (id: string) => {
+    if (!weddingId) return;
+    try {
+      await deleteTaskMutation.mutateAsync({ id, weddingId });
+      toast({ title: "Task deleted" });
+    } catch {
+      toast({ title: "Error", description: "Failed to delete task", variant: "destructive" });
+    }
   };
 
-  const handleAddTask = (task: Omit<Task, "id">) => {
-    const newTask: Task = { ...task, id: Date.now().toString() };
-    setTasks([...tasks, newTask]);
-    setShowAddDialog(false);
+  const handleAddTask = async (task: Omit<Task, "id">) => {
+    if (!weddingId) return;
+    try {
+      await createTaskMutation.mutateAsync({
+        weddingId,
+        title: task.title,
+        description: task.description,
+        due_date: task.dueDate?.toISOString().split("T")[0],
+        status: task.status,
+        assignee_name: task.assignee?.name,
+        linked_event: task.linkedEvent,
+      });
+      setShowAddDialog(false);
+      toast({ title: "Task added successfully" });
+    } catch {
+      toast({ title: "Error", description: "Failed to add task", variant: "destructive" });
+    }
   };
 
-  const handleEditTask = (task: Omit<Task, "id">) => {
-    if (editingTask) {
-      setTasks(tasks.map(t => t.id === editingTask.id ? { ...task, id: editingTask.id } : t));
+  const handleEditTask = async (task: Omit<Task, "id">) => {
+    if (!weddingId || !editingTask) return;
+    try {
+      await updateTaskMutation.mutateAsync({
+        id: editingTask.id,
+        weddingId,
+        title: task.title,
+        description: task.description,
+        due_date: task.dueDate?.toISOString().split("T")[0],
+        status: task.status,
+        assignee_name: task.assignee?.name,
+        linked_event: task.linkedEvent,
+      });
       setEditingTask(null);
+      toast({ title: "Task updated successfully" });
+    } catch {
+      toast({ title: "Error", description: "Failed to update task", variant: "destructive" });
     }
   };
 
   const todoTasks = filteredTasks.filter(t => t.status === "todo");
   const inProgressTasks = filteredTasks.filter(t => t.status === "in_progress");
   const doneTasks = filteredTasks.filter(t => t.status === "done");
+
+  if (isLoading) {
+    return (
+      <div className="p-4 pb-20" data-testid="page-tasks">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <h2 className="text-xl font-semibold">Tasks</h2>
+          <Skeleton className="h-9 w-28" />
+        </div>
+        <div className="space-y-3">
+          <Skeleton className="h-12" />
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 pb-20" data-testid="page-tasks">

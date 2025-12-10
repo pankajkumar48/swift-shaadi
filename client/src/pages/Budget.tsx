@@ -2,10 +2,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Wallet, TrendingUp, TrendingDown } from "lucide-react";
+import { Plus, Wallet } from "lucide-react";
 import BudgetCard from "@/components/BudgetCard";
 import EmptyState from "@/components/EmptyState";
 import BudgetFormDialog from "@/components/BudgetFormDialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { useWedding, useBudgetQuery, useCreateBudgetItemMutation, useUpdateBudgetItemMutation, useDeleteBudgetItemMutation, useUpdateWeddingMutation } from "@/hooks/use-wedding";
 
 interface BudgetItem {
   id: string;
@@ -23,45 +26,106 @@ function formatCurrency(amount: number): string {
 }
 
 export default function Budget() {
+  const { toast } = useToast();
+  const { wedding } = useWedding();
+  const weddingId = wedding?.id || null;
+
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingItem, setEditingItem] = useState<BudgetItem | null>(null);
   const [showTotalDialog, setShowTotalDialog] = useState(false);
 
-  // todo: remove mock data - replace with real API data
-  const [totalBudget, setTotalBudget] = useState(2500000);
-  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([
-    { id: "1", category: "Venue & Decor", planned: 500000, actual: 350000 },
-    { id: "2", category: "Catering", planned: 400000, actual: 320000 },
-    { id: "3", category: "Photography & Video", planned: 200000, actual: 180000 },
-    { id: "4", category: "Bridal Wear", planned: 300000, actual: 280000 },
-    { id: "5", category: "Groom's Wear", planned: 150000, actual: 120000 },
-    { id: "6", category: "Jewelry", planned: 400000, actual: 350000 },
-    { id: "7", category: "Entertainment & Music", planned: 150000, actual: 100000 },
-    { id: "8", category: "Invitations & Stationery", planned: 50000, actual: 45000 },
-  ]);
+  const { data: budgetData, isLoading } = useBudgetQuery(weddingId);
+  const createBudgetItemMutation = useCreateBudgetItemMutation();
+  const updateBudgetItemMutation = useUpdateBudgetItemMutation();
+  const deleteBudgetItemMutation = useDeleteBudgetItemMutation();
+  const updateWeddingMutation = useUpdateWeddingMutation();
 
+  const budgetItems: BudgetItem[] = (budgetData || []).map(b => ({
+    id: b.id,
+    category: b.category,
+    planned: b.planned,
+    actual: b.actual,
+  }));
+
+  const totalBudget = wedding?.total_budget || 0;
   const totalPlanned = budgetItems.reduce((sum, item) => sum + item.planned, 0);
   const totalSpent = budgetItems.reduce((sum, item) => sum + item.actual, 0);
   const remaining = totalBudget - totalSpent;
   const percentage = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
   const isOverBudget = totalSpent > totalBudget;
 
-  const handleDelete = (id: string) => {
-    setBudgetItems(budgetItems.filter(b => b.id !== id));
-  };
-
-  const handleAddItem = (item: Omit<BudgetItem, "id">) => {
-    const newItem: BudgetItem = { ...item, id: Date.now().toString() };
-    setBudgetItems([...budgetItems, newItem]);
-    setShowAddDialog(false);
-  };
-
-  const handleEditItem = (item: Omit<BudgetItem, "id">) => {
-    if (editingItem) {
-      setBudgetItems(budgetItems.map(b => b.id === editingItem.id ? { ...item, id: editingItem.id } : b));
-      setEditingItem(null);
+  const handleDelete = async (id: string) => {
+    if (!weddingId) return;
+    try {
+      await deleteBudgetItemMutation.mutateAsync({ id, weddingId });
+      toast({ title: "Budget item deleted" });
+    } catch {
+      toast({ title: "Error", description: "Failed to delete item", variant: "destructive" });
     }
   };
+
+  const handleAddItem = async (item: Omit<BudgetItem, "id">) => {
+    if (!weddingId) return;
+    try {
+      await createBudgetItemMutation.mutateAsync({
+        weddingId,
+        category: item.category,
+        planned: item.planned,
+        actual: item.actual,
+      });
+      setShowAddDialog(false);
+      toast({ title: "Budget item added successfully" });
+    } catch {
+      toast({ title: "Error", description: "Failed to add item", variant: "destructive" });
+    }
+  };
+
+  const handleEditItem = async (item: Omit<BudgetItem, "id">) => {
+    if (!weddingId || !editingItem) return;
+    try {
+      await updateBudgetItemMutation.mutateAsync({
+        id: editingItem.id,
+        weddingId,
+        category: item.category,
+        planned: item.planned,
+        actual: item.actual,
+      });
+      setEditingItem(null);
+      toast({ title: "Budget item updated successfully" });
+    } catch {
+      toast({ title: "Error", description: "Failed to update item", variant: "destructive" });
+    }
+  };
+
+  const handleUpdateTotalBudget = async (data: { category: string; planned: number; actual: number }) => {
+    if (!wedding) return;
+    try {
+      await updateWeddingMutation.mutateAsync({
+        id: wedding.id,
+        total_budget: data.planned,
+      });
+      setShowTotalDialog(false);
+      toast({ title: "Total budget updated" });
+    } catch {
+      toast({ title: "Error", description: "Failed to update budget", variant: "destructive" });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-4 pb-20" data-testid="page-budget">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <h2 className="text-xl font-semibold">Budget</h2>
+          <Skeleton className="h-9 w-28" />
+        </div>
+        <Skeleton className="h-40 mb-6" />
+        <div className="space-y-3">
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 pb-20" data-testid="page-budget">
@@ -159,10 +223,7 @@ export default function Budget() {
       <BudgetFormDialog
         open={showTotalDialog}
         onOpenChange={setShowTotalDialog}
-        onSubmit={(data: { category: string; planned: number; actual: number }) => {
-          setTotalBudget(data.planned);
-          setShowTotalDialog(false);
-        }}
+        onSubmit={handleUpdateTotalBudget}
         initialData={{ category: "Total Budget", planned: totalBudget, actual: 0 }}
         isTotalBudget
       />

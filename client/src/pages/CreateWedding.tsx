@@ -5,14 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Heart, Calendar, MapPin, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCreateWeddingMutation, Wedding } from "@/hooks/use-wedding";
 
 interface CreateWeddingProps {
-  onComplete: () => void;
+  onComplete: (wedding: Wedding) => void;
 }
 
 export default function CreateWedding({ onComplete }: CreateWeddingProps) {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const createWeddingMutation = useCreateWeddingMutation();
   
   const [formData, setFormData] = useState({
     coupleNames: "",
@@ -22,17 +23,26 @@ export default function CreateWedding({ onComplete }: CreateWeddingProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
-    // todo: replace with real API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const wedding = await createWeddingMutation.mutateAsync({
+        couple_names: formData.coupleNames,
+        date: formData.date,
+        city: formData.city,
+      });
       toast({
         title: "Wedding created!",
         description: "Let's start planning your special day.",
       });
-      onComplete();
-    }, 1000);
+      onComplete(wedding);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to create wedding";
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -106,8 +116,8 @@ export default function CreateWedding({ onComplete }: CreateWeddingProps) {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading} data-testid="button-create-wedding">
-                {isLoading ? "Creating..." : "Create Wedding"}
+              <Button type="submit" className="w-full" disabled={createWeddingMutation.isPending} data-testid="button-create-wedding">
+                {createWeddingMutation.isPending ? "Creating..." : "Create Wedding"}
               </Button>
             </form>
           </CardContent>

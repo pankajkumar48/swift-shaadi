@@ -2,9 +2,33 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { spawn } from "child_process";
 
 const app = express();
 const httpServer = createServer(app);
+
+// Start FastAPI backend
+const fastApiProcess = spawn("python", ["-m", "uvicorn", "backend.main:app", "--host", "127.0.0.1", "--port", "8000"], {
+  cwd: process.cwd(),
+  stdio: ["ignore", "pipe", "pipe"],
+  detached: false,
+});
+
+fastApiProcess.stdout?.on("data", (data) => {
+  console.log(`[fastapi] ${data.toString().trim()}`);
+});
+
+fastApiProcess.stderr?.on("data", (data) => {
+  console.error(`[fastapi] ${data.toString().trim()}`);
+});
+
+fastApiProcess.on("error", (error) => {
+  console.error(`[fastapi] Failed to start: ${error.message}`);
+});
+
+process.on("exit", () => {
+  fastApiProcess.kill();
+});
 
 declare module "http" {
   interface IncomingMessage {

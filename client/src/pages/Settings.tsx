@@ -1,33 +1,69 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Heart, Calendar, MapPin } from "lucide-react";
+import { ArrowLeft, Heart, Calendar, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useWedding, useUpdateWeddingMutation } from "@/hooks/use-wedding";
 
 interface SettingsProps {
   onNavigate: (path: string) => void;
+  onLogout: () => void;
 }
 
-export default function Settings({ onNavigate }: SettingsProps) {
+export default function Settings({ onNavigate, onLogout }: SettingsProps) {
   const { toast } = useToast();
+  const { wedding } = useWedding();
+  const updateWeddingMutation = useUpdateWeddingMutation();
 
-  // todo: remove mock data - replace with real wedding data
   const [weddingData, setWeddingData] = useState({
-    coupleNames: "Priya & Rahul",
-    date: "2025-02-15",
-    city: "Mumbai",
-    haldiDateTime: "2025-02-14T10:00",
-    sangeetDateTime: "2025-02-14T19:00",
-    weddingDateTime: "2025-02-15T18:00",
+    coupleNames: "",
+    date: "",
+    city: "",
+    haldiDateTime: "",
+    sangeetDateTime: "",
+    weddingDateTime: "",
   });
 
-  const handleSave = () => {
-    toast({
-      title: "Settings saved",
-      description: "Your wedding details have been updated.",
-    });
+  useEffect(() => {
+    if (wedding) {
+      setWeddingData({
+        coupleNames: wedding.couple_names || "",
+        date: wedding.date || "",
+        city: wedding.city || "",
+        haldiDateTime: wedding.haldi_date_time || "",
+        sangeetDateTime: wedding.sangeet_date_time || "",
+        weddingDateTime: wedding.wedding_date_time || "",
+      });
+    }
+  }, [wedding]);
+
+  const handleSave = async () => {
+    if (!wedding) return;
+
+    try {
+      await updateWeddingMutation.mutateAsync({
+        id: wedding.id,
+        couple_names: weddingData.coupleNames,
+        date: weddingData.date,
+        city: weddingData.city,
+        haldi_date_time: weddingData.haldiDateTime || undefined,
+        sangeet_date_time: weddingData.sangeetDateTime || undefined,
+        wedding_date_time: weddingData.weddingDateTime || undefined,
+      });
+      toast({
+        title: "Settings saved",
+        description: "Your wedding details have been updated.",
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to save settings";
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -131,9 +167,26 @@ export default function Settings({ onNavigate }: SettingsProps) {
         </CardContent>
       </Card>
 
-      <Button onClick={handleSave} className="w-full" data-testid="button-save-settings">
-        Save Changes
-      </Button>
+      <div className="space-y-2">
+        <Button 
+          onClick={handleSave} 
+          className="w-full" 
+          disabled={updateWeddingMutation.isPending}
+          data-testid="button-save-settings"
+        >
+          {updateWeddingMutation.isPending ? "Saving..." : "Save Changes"}
+        </Button>
+
+        <Button 
+          variant="outline" 
+          onClick={onLogout} 
+          className="w-full"
+          data-testid="button-logout"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Log Out
+        </Button>
+      </div>
     </div>
   );
 }
