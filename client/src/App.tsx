@@ -8,6 +8,7 @@ import { User } from "@/hooks/use-auth";
 
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
+import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import Guests from "@/pages/Guests";
 import Timeline from "@/pages/Timeline";
@@ -20,10 +21,11 @@ import More from "@/pages/More";
 import Auth from "@/pages/Auth";
 import CreateWedding from "@/pages/CreateWedding";
 
-type AppState = "loading" | "auth" | "create-wedding" | "app";
+type AppState = "landing" | "loading" | "auth" | "create-wedding" | "app";
 
 function AppContent() {
-  const [appState, setAppState] = useState<AppState>("loading");
+  const [appState, setAppState] = useState<AppState>("landing");
+  const [hasClickedOpenApp, setHasClickedOpenApp] = useState(false);
   const [currentPath, setCurrentPath] = useState("/");
   const [wedding, setWedding] = useState<Wedding | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -32,6 +34,7 @@ function AppContent() {
   const { data: authData, isLoading: authLoading, error: authError, isError: authIsError } = useQuery<{ user: User } | null>({
     queryKey: ["/api/auth/me"],
     retry: false,
+    enabled: hasClickedOpenApp,
   });
 
   const { data: weddings, isLoading: weddingsLoading, isError: weddingsIsError } = useQuery<Wedding[]>({
@@ -41,6 +44,11 @@ function AppContent() {
   });
 
   useEffect(() => {
+    if (!hasClickedOpenApp) {
+      setAppState("landing");
+      return;
+    }
+
     if (authLoading) {
       setAppState("loading");
       return;
@@ -79,7 +87,11 @@ function AppContent() {
       setWedding(weddings[0]);
     }
     setAppState("app");
-  }, [authData, authLoading, authError, authIsError, weddings, weddingsLoading, weddingsIsError, wedding]);
+  }, [authData, authLoading, authError, authIsError, weddings, weddingsLoading, weddingsIsError, wedding, hasClickedOpenApp]);
+
+  const handleOpenApp = () => {
+    setHasClickedOpenApp(true);
+  };
 
   const handleAuth = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
@@ -106,6 +118,15 @@ function AppContent() {
     setIsAuthenticated(false);
     setAppState("auth");
   };
+
+  if (appState === "landing") {
+    return (
+      <>
+        <Landing onOpenApp={handleOpenApp} />
+        <Toaster />
+      </>
+    );
+  }
 
   if (appState === "loading") {
     return (

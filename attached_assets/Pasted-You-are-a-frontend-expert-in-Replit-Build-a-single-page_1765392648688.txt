@@ -1,0 +1,103 @@
+You are a frontend expert in Replit. Build a single page marketing site for a LIVE product called "Swift Shaadi".
+
+Tech:
+- Use React with Vite.
+- Use simple CSS (single CSS file or modules). No UI library.
+
+Goal:
+Create a minimal, smooth, mobile-first landing page with light pastel colors and clean typography. It should feel like a modern SaaS site with a soft Indian wedding vibe, promoting a product that is already live.
+
+Design rules:
+- Pastel palette: soft peach, blush pink, mint, lavender, light gold, off white.
+- Plenty of white space, rounded cards, subtle shadows.
+- No harsh neons.
+- Font stack: "SF Pro Text", "Helvetica Neue", system-ui, sans-serif.
+- Mobile-first layout, then scale to desktop.
+- Smooth scrolling when navbar links are clicked.
+- Simple hover states and gentle fade-in transitions.
+
+Structure the page into sections with ids so navbar links scroll there:
+
+1) Navbar (sticky):
+   - Left: logo text "Swift Shaadi".
+   - Right: links: Features, How it works, Pricing, FAQ plus a primary button "Open app".
+   - On scroll, navbar gets a soft background and shadow.
+
+2) Hero section:
+   - Headline: "Wedding planning for Indian families, made simple."
+   - Subtext: "Swift Shaadi is a live web app that brings guests, invites, schedules, tasks, and budgets together so everyone stays organised and stress stays low."
+   - Primary button: "Start planning now".
+   - Secondary text link: "See how it works" that scrolls to How it works section.
+   - On the right or below on mobile, show a simple card stack / phone mock illustrating the app (dummy UI).
+
+3) Small strip:
+   - Text: "Already helping Indian families plan roka, mehendi, sangeet, wedding, and reception in one place."
+
+4) Problem section:
+   Heading: "Planning a wedding should not feel chaotic."
+   Three small cards:
+   - Guest lists scattered across WhatsApp and sheets.
+   - No clear view of RSVPs, timeline, and tasks.
+   - Hard to align parents, siblings, and planners.
+
+5) Solution section:
+   Heading: "Meet Swift Shaadi."
+   Subheading: "Designed for Indian weddings. Built for families."
+   Three feature cards:
+   - Plan in one place – guests, RSVPs, timeline, tasks, budget.
+   - Share invites easily – ready templates you copy and send from your own number.
+   - Coordinate smoothly – roles for parents, siblings, and cousins.
+
+6) Feature highlights section with simple tabs:
+   Tabs: "Guests & RSVPs", "Invite templates", "Timeline & tasks", "Budget overview".
+   Clicking a tab updates:
+   - A short description paragraph.
+   - A simple illustrative card on the side (e.g., list of guests, a template preview, a timeline, a budget card).
+
+7) How it works section:
+   Heading: "Start using Swift Shaadi in three simple steps."
+   Steps:
+   1. Create your wedding – add names, date, and city.
+   2. Add guests, events, and tasks – keep everything in one space.
+   3. Share invite messages and track RSVPs – copy templates, send from your phone, update responses.
+   Include a small “Open app” button here.
+
+8) Pricing teaser:
+   Two cards side by side (stacked on mobile):
+   - Free plan – Available now.
+     List: guests & RSVPs, invite templates, timeline, tasks, budget.
+   - Premium – Coming soon.
+     List: vendor marketplace, payment tracking, live updates, file storage, advanced analytics.
+   Premium card has a small lock icon or “Coming soon” label.
+
+9) Social proof section:
+   Heading: "Loved by modern Indian families."
+   Two or three testimonial cards with short quotes and names, e.g.:
+   - “We finally organised everything without five different spreadsheets.”
+   - “My parents could see tasks clearly and felt in control.”
+   Keep them as simple static cards.
+
+10) FAQ:
+   Heading: "Frequently asked questions."
+   Use simple accordions for questions:
+   - Is Swift Shaadi free to use?
+   - Can my parents and siblings also log in?
+   - Do you send WhatsApp messages automatically?
+   - Does this work on my phone?
+   Provide short clear answers, emphasising that the app is already live and works on mobile browsers.
+
+11) Final CTA section:
+   Heading: "Ready to make wedding planning calmer?"
+   Subtext: "Open Swift Shaadi, create your wedding, and invite your family to plan together today."
+   Button: "Open Swift Shaadi".
+
+12) Footer:
+   Small footer bar.
+   Text: "© 2025 Swift Shaadi. Made with love for Indian families."
+   Links for: Features, How it works, Pricing, FAQ, Contact, Privacy, Terms (can be placeholder anchors).
+
+Implementation details:
+- Put all sections in App.tsx (or a few components) and wire navbar links using scrollIntoView or similar.
+- Use React state for active feature tab and FAQ accordion open/close.
+- Use CSS for layout and animations with flexbox and max-width containers.
+- Make sure it looks good on mobile first, then add media queries for larger screens.

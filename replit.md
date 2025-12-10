@@ -21,7 +21,8 @@ Swift Shaadi is a mobile-first Progressive Web App for Indian wedding planning. 
 
 ### Dual-Server Setup
 - Express (port 5000) serves frontend and proxies `/api/*` to FastAPI (port 8000)
-- Proxy config in `server/routes.ts`
+- Proxy configured in `server/index.ts` BEFORE body parsers to preserve request body stream
+- FastAPI is automatically spawned when Express starts
 
 ## Database (Supabase)
 - Schema defined in `supabase_schema.sql`
@@ -47,7 +48,14 @@ Before the app can work, you MUST create the database tables in Supabase:
 
 Without running this SQL, the app will show "Database error" messages.
 
+## User Flow
+1. **Landing Page** - Marketing page with features, pricing, testimonials, FAQ
+2. **Auth** - Login/Signup with email and password
+3. **Create Wedding** - Set up wedding with couple names, date, city
+4. **Dashboard** - Main app with bottom navigation for all features
+
 ## Features (MVP)
+- Landing page with marketing content and CTA
 - User authentication (signup/login/logout)
 - Wedding setup with couple names, date, city
 - Guest management with RSVP tracking
