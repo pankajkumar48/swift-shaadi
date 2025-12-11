@@ -269,7 +269,8 @@ async def google_login(request: Request):
         host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost:5000")
     
     scheme = request.headers.get("x-forwarded-proto", "https" if "replit" in host or "swiftshaadi" in host else "http")
-    redirect_uri = GOOGLE_REDIRECT_URI or f"{scheme}://{host}/api/auth/google/callback"
+    # Always use dynamic redirect URI for multi-domain support (ignore GOOGLE_REDIRECT_URI env var)
+    redirect_uri = f"{scheme}://{host}/api/auth/google/callback"
     is_secure = scheme == "https"
     
     print(f"[DEBUG] Using redirect_uri: {redirect_uri}")
@@ -322,7 +323,8 @@ async def google_callback(
     # Prefer x-forwarded-host to get the original domain when behind proxy
     host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost:5000")
     scheme = request.headers.get("x-forwarded-proto", "https" if "replit" in host or "swiftshaadi" in host else "http")
-    redirect_uri = GOOGLE_REDIRECT_URI or f"{scheme}://{host}/api/auth/google/callback"
+    # Always use dynamic redirect URI for multi-domain support
+    redirect_uri = f"{scheme}://{host}/api/auth/google/callback"
     
     try:
         # Exchange code for tokens
