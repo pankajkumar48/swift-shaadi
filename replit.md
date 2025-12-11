@@ -50,7 +50,6 @@ Without running this SQL, the app will show "Database error" messages.
 
 ### If you already have tables set up:
 Run `supabase_update_guests.sql` to add the `accompanying_count` column to the guests table.
-Run `supabase_add_phone.sql` to add the `phone` column for SMS OTP authentication.
 
 ## URL Structure
 - `/` - Landing page (marketing, public)
@@ -66,10 +65,7 @@ Run `supabase_add_phone.sql` to add the `phone` column for SMS OTP authenticatio
 
 ## User Flow
 1. **Landing Page** (`/`) - Marketing page with features, pricing, testimonials, FAQ
-2. **Auth** (`/app`) - Login/Signup with:
-   - Phone number with SMS OTP (default, easiest)
-   - Google login via Replit Auth
-   - Email and password
+2. **Auth** (`/app`) - Login/Signup with email and password
 3. **Create Wedding** (`/app`) - Set up wedding with couple names, date, city
 4. **Dashboard** (`/app`) - Main app with bottom navigation for all features
 
@@ -90,8 +86,7 @@ Run `supabase_add_phone.sql` to add the `phone` column for SMS OTP authenticatio
 - Design guidelines in `design_guidelines.md`
 
 ## API Endpoints
-- Auth: `/api/auth/signup`, `/api/auth/login`, `/api/auth/logout`, `/api/auth/me`, `/api/auth/phone`
-- OTP: `/api/otp/send`, `/api/otp/verify` (handled by Express, not FastAPI)
+- Auth: `/api/auth/signup`, `/api/auth/login`, `/api/auth/logout`, `/api/auth/me`
 - Weddings: `/api/weddings`, `/api/weddings/:id`
 - Guests: `/api/weddings/:id/guests`, `/api/guests/:id`
 - Events: `/api/weddings/:id/events`, `/api/events/:id`

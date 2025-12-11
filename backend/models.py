@@ -12,25 +12,16 @@ TaskStatus = Literal["todo", "in_progress", "done"]
 # User Models
 class UserBase(BaseModel):
     name: str
-    email: Optional[str] = None
-    phone: Optional[str] = None
+    email: str
 
 
-class UserCreate(BaseModel):
-    name: str
-    email: Optional[str] = None
-    password: Optional[str] = None
-    phone: Optional[str] = None
+class UserCreate(UserBase):
+    password: str
 
 
 class UserLogin(BaseModel):
     email: str
     password: str
-
-
-class PhoneLogin(BaseModel):
-    phone: str
-    name: Optional[str] = None
 
 
 class User(UserBase):
