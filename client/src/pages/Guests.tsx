@@ -200,7 +200,7 @@ export default function Guests() {
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            {filteredGuests.length} guest{filteredGuests.length !== 1 ? "s" : ""}
+            {filteredGuests.reduce((sum, g) => sum + 1 + (g.accompanyingCount || 0), 0)} attendee{filteredGuests.reduce((sum, g) => sum + 1 + (g.accompanyingCount || 0), 0) !== 1 ? "s" : ""} ({filteredGuests.length} invitation{filteredGuests.length !== 1 ? "s" : ""})
           </p>
           {filteredGuests.map((guest) => (
             <GuestCard

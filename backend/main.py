@@ -375,23 +375,24 @@ async def delete_team_member(member_id: str):
 # Dashboard Stats
 @app.get("/api/weddings/{wedding_id}/stats")
 async def get_wedding_stats(wedding_id: str):
-    guests = supabase.table("guests").select("rsvp_status").eq("wedding_id", wedding_id).execute()
+    guests = supabase.table("guests").select("rsvp_status, accompanying_count").eq("wedding_id", wedding_id).execute()
     tasks = supabase.table("tasks").select("status").eq("wedding_id", wedding_id).execute()
     budget = supabase.table("budget_items").select("planned, actual").eq("wedding_id", wedding_id).execute()
     wedding = supabase.table("weddings").select("total_budget").eq("id", wedding_id).execute()
     
     guest_stats = {"total": 0, "going": 0, "not_going": 0, "maybe": 0, "pending": 0}
     for g in guests.data:
-        guest_stats["total"] += 1
+        count = 1 + (g.get("accompanying_count") or 0)
+        guest_stats["total"] += count
         status = g["rsvp_status"]
         if status == "going":
-            guest_stats["going"] += 1
+            guest_stats["going"] += count
         elif status == "not_going":
-            guest_stats["not_going"] += 1
+            guest_stats["not_going"] += count
         elif status == "maybe":
-            guest_stats["maybe"] += 1
+            guest_stats["maybe"] += count
         else:
-            guest_stats["pending"] += 1
+            guest_stats["pending"] += count
     
     task_stats = {"total": 0, "completed": 0, "overdue": 0}
     for t in tasks.data:
