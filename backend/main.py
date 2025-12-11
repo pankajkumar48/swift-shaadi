@@ -123,9 +123,26 @@ async def get_me(user_id: str = Depends(get_current_user)):
     return {"user": result.data[0]}
 
 
+from fastapi import Header
+
 @app.post("/api/auth/phone")
-async def phone_login(credentials: PhoneLogin, response: Response):
-    """Login or signup with phone number (after OTP verification)"""
+async def phone_login(
+    credentials: PhoneLogin, 
+    response: Response,
+    x_phone_verified: Optional[str] = Header(None, alias="X-Phone-Verified")
+):
+    """Login or signup with phone number (after OTP verification)
+    
+    Security: This endpoint must only be called from Express after OTP verification.
+    The X-Phone-Verified header is required and set by Express proxy.
+    """
+    # Verify request comes from Express after OTP verification
+    if x_phone_verified != "true":
+        raise HTTPException(
+            status_code=403, 
+            detail="Direct access not allowed. Please verify your phone via OTP first."
+        )
+    
     try:
         # Check if user exists with this phone
         result = supabase.table("users").select("*").eq("phone", credentials.phone).execute()

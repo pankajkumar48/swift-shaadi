@@ -32,15 +32,30 @@ process.on("exit", () => {
   fastApiProcess.kill();
 });
 
+import crypto from "crypto";
+
 // OTP storage (in-memory, expires after 5 minutes)
 const otpStore: Map<string, { otp: string; expiresAt: number; userId?: string }> = new Map();
 
-// Clean up expired OTPs periodically
+// Verified phone tokens (valid for 10 minutes after OTP verification)
+const verifiedPhoneTokens: Map<string, { phone: string; expiresAt: number }> = new Map();
+
+// Generate a secure verification token
+function generateVerificationToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+// Clean up expired OTPs and tokens periodically
 setInterval(() => {
   const now = Date.now();
   for (const [phone, data] of otpStore.entries()) {
     if (data.expiresAt < now) {
       otpStore.delete(phone);
+    }
+  }
+  for (const [token, data] of verifiedPhoneTokens.entries()) {
+    if (data.expiresAt < now) {
+      verifiedPhoneTokens.delete(token);
     }
   }
 }, 60000); // Check every minute
@@ -79,7 +94,7 @@ app.post("/api/otp/send", async (req: Request, res: Response) => {
   }
 });
 
-// Verify OTP endpoint
+// Verify OTP endpoint - returns a verification token
 app.post("/api/otp/verify", async (req: Request, res: Response) => {
   try {
     const { phone, otp } = req.body;
@@ -103,18 +118,84 @@ app.post("/api/otp/verify", async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid OTP. Please try again." });
     }
     
-    // OTP verified successfully - clean up
+    // OTP verified successfully - clean up OTP and generate verification token
     otpStore.delete(phone);
     
-    log(`OTP verified for ${phone.substring(0, 4)}****`);
+    // Generate a verification token that must be used to complete phone login
+    const verificationToken = generateVerificationToken();
+    const tokenExpiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+    verifiedPhoneTokens.set(verificationToken, { phone, expiresAt: tokenExpiresAt });
+    
+    log(`OTP verified for ${phone.substring(0, 4)}****, token issued`);
     return res.json({ 
       success: true, 
       message: "Phone verified successfully",
-      phone: phone
+      phone: phone,
+      verificationToken: verificationToken
     });
   } catch (error: any) {
     console.error("Error verifying OTP:", error);
     return res.status(500).json({ message: "Failed to verify OTP" });
+  }
+});
+
+// Phone authentication endpoint - requires verification token from OTP flow
+app.use("/api/auth/phone", express.json());
+app.post("/api/auth/phone", async (req: Request, res: Response) => {
+  try {
+    const { verificationToken, name } = req.body;
+    
+    if (!verificationToken) {
+      return res.status(400).json({ message: "Verification token is required. Please verify your phone first." });
+    }
+    
+    // Validate the verification token
+    const tokenData = verifiedPhoneTokens.get(verificationToken);
+    
+    if (!tokenData) {
+      return res.status(401).json({ message: "Invalid or expired verification token. Please verify your phone again." });
+    }
+    
+    if (tokenData.expiresAt < Date.now()) {
+      verifiedPhoneTokens.delete(verificationToken);
+      return res.status(401).json({ message: "Verification token expired. Please verify your phone again." });
+    }
+    
+    const phone = tokenData.phone;
+    
+    // Forward to FastAPI with verified phone - include a special header to indicate verified request
+    const fastApiResponse = await fetch("http://localhost:8000/api/auth/phone", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Phone-Verified": "true"
+      },
+      body: JSON.stringify({ phone, name })
+    });
+    
+    const data = await fastApiResponse.json();
+    
+    if (!fastApiResponse.ok) {
+      return res.status(fastApiResponse.status).json(data);
+    }
+    
+    // Only clean up token after successful login (not for new user detection)
+    // If isNewUser is true and no name was provided, keep the token for the follow-up call
+    if (!data.isNewUser || name) {
+      verifiedPhoneTokens.delete(verificationToken);
+    }
+    
+    // Forward cookies from FastAPI response
+    const setCookie = fastApiResponse.headers.get("set-cookie");
+    if (setCookie) {
+      res.setHeader("Set-Cookie", setCookie);
+    }
+    
+    log(`Phone login completed for ${phone.substring(0, 4)}****`);
+    return res.json(data);
+  } catch (error: any) {
+    console.error("Error in phone auth:", error);
+    return res.status(500).json({ message: "Failed to complete phone authentication" });
   }
 });
 

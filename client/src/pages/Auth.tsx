@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, Mail, Lock, User } from "lucide-react";
+import { Heart, Mail, Lock, User, Phone, Loader2 } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLoginMutation, useSignupMutation } from "@/hooks/use-auth";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface AuthProps {
   onAuth: () => void;
@@ -23,9 +25,40 @@ export default function Auth({ onAuth }: AuthProps) {
     password: "", 
     confirmPassword: "" 
   });
+  const [phoneData, setPhoneData] = useState({
+    phone: "",
+    otp: "",
+    name: "",
+    verificationToken: "",
+    step: "phone" as "phone" | "otp" | "name"
+  });
 
   const loginMutation = useLoginMutation();
   const signupMutation = useSignupMutation();
+
+  const sendOtpMutation = useMutation({
+    mutationFn: async (phone: string) => {
+      const res = await apiRequest("POST", "/api/otp/send", { phone });
+      return res.json();
+    }
+  });
+
+  const verifyOtpMutation = useMutation({
+    mutationFn: async ({ phone, otp }: { phone: string; otp: string }) => {
+      const res = await apiRequest("POST", "/api/otp/verify", { phone, otp });
+      return res.json();
+    }
+  });
+
+  const phoneLoginMutation = useMutation({
+    mutationFn: async ({ verificationToken, name }: { verificationToken: string; name?: string }) => {
+      const res = await apiRequest("POST", "/api/auth/phone", { verificationToken, name });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+    }
+  });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,7 +116,94 @@ export default function Auth({ onAuth }: AuthProps) {
     }
   };
 
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!phoneData.phone || phoneData.phone.length < 10) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid phone number with country code (e.g., +91XXXXXXXXXX)",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      await sendOtpMutation.mutateAsync(phoneData.phone);
+      toast({
+        title: "OTP sent!",
+        description: "Check your phone for the verification code.",
+      });
+      setPhoneData({ ...phoneData, step: "otp" });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to send OTP";
+      toast({
+        title: "Failed to send OTP",
+        description: message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const verifyResult = await verifyOtpMutation.mutateAsync({ phone: phoneData.phone, otp: phoneData.otp });
+      
+      // Store the verification token
+      const verificationToken = verifyResult.verificationToken;
+      
+      const result = await phoneLoginMutation.mutateAsync({ 
+        verificationToken,
+        name: phoneData.name || undefined 
+      });
+      
+      if (result.isNewUser && !phoneData.name) {
+        setPhoneData({ ...phoneData, verificationToken, step: "name" });
+        return;
+      }
+      
+      toast({
+        title: "Welcome!",
+        description: "You have been logged in successfully.",
+      });
+      onAuth();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Verification failed";
+      toast({
+        title: "Verification failed",
+        description: message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCompleteName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      await phoneLoginMutation.mutateAsync({ 
+        verificationToken: phoneData.verificationToken,
+        name: phoneData.name 
+      });
+      toast({
+        title: "Account created!",
+        description: "Welcome to Swift Shaadi. Let's plan your wedding!",
+      });
+      onAuth();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to complete signup";
+      toast({
+        title: "Failed",
+        description: message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const isLoading = loginMutation.isPending || signupMutation.isPending;
+  const isPhoneLoading = sendOtpMutation.isPending || verifyOtpMutation.isPending || phoneLoginMutation.isPending;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-secondary/20 to-background" data-testid="page-auth">
@@ -97,15 +217,157 @@ export default function Auth({ onAuth }: AuthProps) {
         </div>
 
         <Card data-testid="card-auth">
-          <Tabs defaultValue="login">
+          <Tabs defaultValue="phone">
             <CardHeader className="pb-0">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login" data-testid="tab-login">Login</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="phone" data-testid="tab-phone">Phone</TabsTrigger>
+                <TabsTrigger value="login" data-testid="tab-login">Email</TabsTrigger>
                 <TabsTrigger value="signup" data-testid="tab-signup">Sign Up</TabsTrigger>
               </TabsList>
             </CardHeader>
             
             <CardContent className="pt-6">
+              <TabsContent value="phone" className="mt-0">
+                <div className="space-y-4 mb-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => window.location.href = "/api/login"}
+                    data-testid="button-google-phone"
+                  >
+                    <SiGoogle className="w-4 h-4 mr-2" />
+                    Continue with Google
+                  </Button>
+                  
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">Or use phone</span>
+                    </div>
+                  </div>
+                </div>
+
+                {phoneData.step === "phone" && (
+                  <form onSubmit={handleSendOtp} className="space-y-4">
+                    <div>
+                      <Label htmlFor="phone-number">Phone Number</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="phone-number"
+                          type="tel"
+                          placeholder="+91 98765 43210"
+                          className="pl-9"
+                          value={phoneData.phone}
+                          onChange={(e) => setPhoneData({ ...phoneData, phone: e.target.value })}
+                          required
+                          data-testid="input-phone"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">Include country code (e.g., +91 for India)</p>
+                    </div>
+                    
+                    <Button type="submit" className="w-full" disabled={isPhoneLoading} data-testid="button-send-otp">
+                      {sendOtpMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Sending OTP...
+                        </>
+                      ) : (
+                        "Send OTP"
+                      )}
+                    </Button>
+                  </form>
+                )}
+
+                {phoneData.step === "otp" && (
+                  <form onSubmit={handleVerifyOtp} className="space-y-4">
+                    <div>
+                      <Label htmlFor="otp-code">Enter OTP</Label>
+                      <Input
+                        id="otp-code"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={6}
+                        placeholder="123456"
+                        className="text-center text-lg tracking-widest"
+                        value={phoneData.otp}
+                        onChange={(e) => setPhoneData({ ...phoneData, otp: e.target.value.replace(/\D/g, "") })}
+                        required
+                        data-testid="input-otp"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Sent to {phoneData.phone}
+                        <button 
+                          type="button" 
+                          className="px-1 text-xs text-primary underline"
+                          onClick={() => setPhoneData({ ...phoneData, step: "phone", otp: "" })}
+                        >
+                          Change
+                        </button>
+                      </p>
+                    </div>
+                    
+                    <Button type="submit" className="w-full" disabled={isPhoneLoading || phoneData.otp.length !== 6} data-testid="button-verify-otp">
+                      {verifyOtpMutation.isPending || phoneLoginMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Verifying...
+                        </>
+                      ) : (
+                        "Verify & Continue"
+                      )}
+                    </Button>
+                    
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      className="w-full"
+                      onClick={() => sendOtpMutation.mutate(phoneData.phone)}
+                      disabled={sendOtpMutation.isPending}
+                    >
+                      Resend OTP
+                    </Button>
+                  </form>
+                )}
+
+                {phoneData.step === "name" && (
+                  <form onSubmit={handleCompleteName} className="space-y-4">
+                    <div>
+                      <Label htmlFor="phone-name">Your Name</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="phone-name"
+                          type="text"
+                          placeholder="Your name"
+                          className="pl-9"
+                          value={phoneData.name}
+                          onChange={(e) => setPhoneData({ ...phoneData, name: e.target.value })}
+                          required
+                          data-testid="input-phone-name"
+                        />
+                      </div>
+                    </div>
+                    
+                    <Button type="submit" className="w-full" disabled={phoneLoginMutation.isPending} data-testid="button-complete-signup">
+                      {phoneLoginMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Creating account...
+                        </>
+                      ) : (
+                        "Complete Sign Up"
+                      )}
+                    </Button>
+                  </form>
+                )}
+              </TabsContent>
+
               <TabsContent value="login" className="mt-0">
                 <div className="space-y-4">
                   <Button
