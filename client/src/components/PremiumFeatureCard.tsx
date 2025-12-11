@@ -15,13 +15,13 @@ export default function PremiumFeatureCard({
   icon: Icon,
 }: PremiumFeatureCardProps) {
   return (
-    <Card className="p-6 border-amber-200 dark:border-amber-900/50 bg-gradient-to-br from-amber-50/50 to-transparent dark:from-amber-950/20" data-testid={`card-premium-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+    <Card className="p-6 border-yellow-100 dark:border-yellow-900/30 bg-gradient-to-br from-yellow-50/30 to-transparent dark:from-yellow-950/10" data-testid={`card-premium-${title.toLowerCase().replace(/\s+/g, '-')}`}>
       <div className="flex flex-col items-center text-center">
-        <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-4">
-          <Icon className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+        <div className="w-12 h-12 rounded-full bg-yellow-50 dark:bg-yellow-900/20 flex items-center justify-center mb-4">
+          <Icon className="w-6 h-6 text-yellow-600 dark:text-yellow-500" />
         </div>
         
-        <Badge className="mb-3 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 gap-1">
+        <Badge className="mb-3 bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400 gap-1">
           <Crown className="w-3 h-3" />
           Premium
         </Badge>

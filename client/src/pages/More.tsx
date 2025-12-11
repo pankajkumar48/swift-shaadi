@@ -70,7 +70,7 @@ export default function More({ onNavigate, onLogout }: MoreProps) {
 
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-3">
-          <Crown className="w-4 h-4 text-amber-500" />
+          <Crown className="w-4 h-4 text-yellow-500" />
           <h3 className="font-medium text-sm">Premium Features</h3>
         </div>
         <div className="grid grid-cols-2 gap-3">
