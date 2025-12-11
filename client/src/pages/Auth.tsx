@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Heart, Mail, Lock, User } from "lucide-react";
+import { SiGoogle } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLoginMutation, useSignupMutation } from "@/hooks/use-auth";
 
@@ -106,7 +107,29 @@ export default function Auth({ onAuth }: AuthProps) {
             
             <CardContent className="pt-6">
               <TabsContent value="login" className="mt-0">
-                <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => window.location.href = "/api/login"}
+                    data-testid="button-google-login"
+                  >
+                    <SiGoogle className="w-4 h-4 mr-2" />
+                    Continue with Google
+                  </Button>
+                  
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">Or continue with email</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <form onSubmit={handleLogin} className="space-y-4 mt-4">
                   <div>
                     <Label htmlFor="login-email">Email</Label>
                     <div className="relative">
@@ -148,7 +171,29 @@ export default function Auth({ onAuth }: AuthProps) {
               </TabsContent>
 
               <TabsContent value="signup" className="mt-0">
-                <form onSubmit={handleSignup} className="space-y-4">
+                <div className="space-y-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => window.location.href = "/api/login"}
+                    data-testid="button-google-signup"
+                  >
+                    <SiGoogle className="w-4 h-4 mr-2" />
+                    Sign up with Google
+                  </Button>
+                  
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">Or sign up with email</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <form onSubmit={handleSignup} className="space-y-4 mt-4">
                   <div>
                     <Label htmlFor="signup-name">Full Name</Label>
                     <div className="relative">
