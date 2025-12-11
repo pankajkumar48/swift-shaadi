@@ -4,6 +4,13 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { spawn } from "child_process";
 import { createProxyMiddleware } from "http-proxy-middleware";
+import { setupAuth } from "./replitAuth";
+
+declare module "http" {
+  interface IncomingMessage {
+    rawBody: unknown;
+  }
+}
 
 const app = express();
 const httpServer = createServer(app);
@@ -31,40 +38,6 @@ process.on("exit", () => {
   fastApiProcess.kill();
 });
 
-// IMPORTANT: Register API proxy BEFORE body parsers to preserve raw body stream
-// This must be done before express.json() parses the request body
-const apiProxy = createProxyMiddleware({
-  target: "http://localhost:8000/api",
-  changeOrigin: true,
-  on: {
-    proxyReq: (proxyReq, req) => {
-      console.log(`[proxy] ${req.method} /api${req.url} -> http://localhost:8000/api${req.url}`);
-    },
-    error: (err, req, res) => {
-      console.error(`[proxy] Error: ${err.message}`);
-    }
-  }
-});
-
-app.use("/api", apiProxy);
-
-declare module "http" {
-  interface IncomingMessage {
-    rawBody: unknown;
-  }
-}
-
-// Body parsers AFTER proxy to avoid consuming the request body before proxying
-app.use(
-  express.json({
-    verify: (req, _res, buf) => {
-      req.rawBody = buf;
-    },
-  }),
-);
-
-app.use(express.urlencoded({ extended: false }));
-
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -76,33 +49,70 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+(async () => {
+  // Set up Replit Auth routes FIRST (before proxy)
+  await setupAuth(app);
+  
+  // IMPORTANT: Register API proxy AFTER auth routes
+  const apiProxy = createProxyMiddleware({
+    target: "http://localhost:8000/api",
+    changeOrigin: true,
+    on: {
+      proxyReq: (proxyReq, req) => {
+        console.log(`[proxy] ${req.method} /api${req.url} -> http://localhost:8000/api${req.url}`);
+      },
+      error: (err, req, res) => {
+        console.error(`[proxy] Error: ${err.message}`);
       }
-
-      log(logLine);
     }
   });
 
-  next();
-});
+  // Exclude auth routes from proxy - they're handled by Express
+  app.use("/api", (req, res, next) => {
+    const authRoutes = ["/login", "/logout", "/callback", "/auth/user"];
+    if (authRoutes.some(route => req.path === route || req.path.startsWith(route))) {
+      return next("route");
+    }
+    return apiProxy(req, res, next);
+  });
 
-(async () => {
+  // Body parsers AFTER proxy to avoid consuming the request body before proxying
+  app.use(
+    express.json({
+      verify: (req, _res, buf) => {
+        req.rawBody = buf;
+      },
+    }),
+  );
+
+  app.use(express.urlencoded({ extended: false }));
+
+  app.use((req, res, next) => {
+    const start = Date.now();
+    const path = req.path;
+    let capturedJsonResponse: Record<string, any> | undefined = undefined;
+
+    const originalResJson = res.json;
+    res.json = function (bodyJson, ...args) {
+      capturedJsonResponse = bodyJson;
+      return originalResJson.apply(res, [bodyJson, ...args]);
+    };
+
+    res.on("finish", () => {
+      const duration = Date.now() - start;
+      if (path.startsWith("/api")) {
+        let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+        if (capturedJsonResponse) {
+          logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        }
+
+        log(logLine);
+      }
+    });
+
+    next();
+  });
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
