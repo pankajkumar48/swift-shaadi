@@ -4,6 +4,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { spawn } from "child_process";
 import { createProxyMiddleware } from "http-proxy-middleware";
+import { generateOTP, sendOTP } from "./twilioClient";
 
 const app = express();
 const httpServer = createServer(app);
@@ -29,6 +30,92 @@ fastApiProcess.on("error", (error) => {
 
 process.on("exit", () => {
   fastApiProcess.kill();
+});
+
+// OTP storage (in-memory, expires after 5 minutes)
+const otpStore: Map<string, { otp: string; expiresAt: number; userId?: string }> = new Map();
+
+// Clean up expired OTPs periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [phone, data] of otpStore.entries()) {
+    if (data.expiresAt < now) {
+      otpStore.delete(phone);
+    }
+  }
+}, 60000); // Check every minute
+
+// OTP endpoints - must be before proxy and need body parsing
+app.use("/api/otp", express.json());
+
+// Send OTP endpoint
+app.post("/api/otp/send", async (req: Request, res: Response) => {
+  try {
+    const { phone } = req.body;
+    
+    if (!phone) {
+      return res.status(400).json({ message: "Phone number is required" });
+    }
+    
+    // Generate OTP
+    const otp = generateOTP();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+    
+    // Store OTP
+    otpStore.set(phone, { otp, expiresAt });
+    
+    // Send OTP via Twilio
+    const success = await sendOTP(phone, otp);
+    
+    if (!success) {
+      return res.status(500).json({ message: "Failed to send OTP. Please try again." });
+    }
+    
+    log(`OTP sent to ${phone.substring(0, 4)}****`);
+    return res.json({ success: true, message: "OTP sent successfully" });
+  } catch (error: any) {
+    console.error("Error sending OTP:", error);
+    return res.status(500).json({ message: "Failed to send OTP" });
+  }
+});
+
+// Verify OTP endpoint
+app.post("/api/otp/verify", async (req: Request, res: Response) => {
+  try {
+    const { phone, otp } = req.body;
+    
+    if (!phone || !otp) {
+      return res.status(400).json({ message: "Phone and OTP are required" });
+    }
+    
+    const stored = otpStore.get(phone);
+    
+    if (!stored) {
+      return res.status(400).json({ message: "No OTP found. Please request a new one." });
+    }
+    
+    if (stored.expiresAt < Date.now()) {
+      otpStore.delete(phone);
+      return res.status(400).json({ message: "OTP expired. Please request a new one." });
+    }
+    
+    if (stored.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP. Please try again." });
+    }
+    
+    // OTP verified successfully - clean up
+    otpStore.delete(phone);
+    
+    log(`OTP verified for ${phone.substring(0, 4)}****`);
+    return res.json({ 
+      success: true, 
+      message: "Phone verified successfully",
+      phone: phone
+    });
+  } catch (error: any) {
+    console.error("Error verifying OTP:", error);
+    return res.status(500).json({ message: "Failed to verify OTP" });
+  }
 });
 
 // IMPORTANT: Register API proxy BEFORE body parsers to preserve raw body stream

@@ -8,7 +8,7 @@ import traceback
 
 from .database import supabase
 from .models import (
-    UserCreate, UserLogin, User,
+    UserCreate, UserLogin, User, PhoneLogin,
     WeddingCreate, WeddingUpdate, Wedding,
     TeamMemberCreate, TeamMemberUpdate, TeamMember,
     GuestCreate, GuestUpdate, Guest,
@@ -117,10 +117,51 @@ async def logout(response: Response, session_id: Optional[str] = Cookie(None, al
 
 @app.get("/api/auth/me")
 async def get_me(user_id: str = Depends(get_current_user)):
-    result = supabase.table("users").select("id, name, email").eq("id", user_id).execute()
+    result = supabase.table("users").select("id, name, email, phone").eq("id", user_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="User not found")
     return {"user": result.data[0]}
+
+
+@app.post("/api/auth/phone")
+async def phone_login(credentials: PhoneLogin, response: Response):
+    """Login or signup with phone number (after OTP verification)"""
+    try:
+        # Check if user exists with this phone
+        result = supabase.table("users").select("*").eq("phone", credentials.phone).execute()
+        
+        if result.data:
+            # User exists - log them in
+            user = result.data[0]
+            session_id = str(uuid.uuid4())
+            sessions[session_id] = user["id"]
+            response.set_cookie("session_id", session_id, httponly=True, samesite="lax")
+            return {"user": {"id": user["id"], "name": user["name"], "email": user.get("email"), "phone": user["phone"]}}
+        else:
+            # Create new user with phone
+            user_id = str(uuid.uuid4())
+            name = credentials.name or f"User {credentials.phone[-4:]}"
+            new_user = {
+                "id": user_id,
+                "name": name,
+                "phone": credentials.phone,
+            }
+            
+            insert_result = supabase.table("users").insert(new_user).execute()
+            
+            if not insert_result.data:
+                raise HTTPException(status_code=500, detail="Failed to create user")
+            
+            session_id = str(uuid.uuid4())
+            sessions[session_id] = user_id
+            response.set_cookie("session_id", session_id, httponly=True, samesite="lax")
+            
+            return {"user": {"id": user_id, "name": name, "phone": credentials.phone}, "isNewUser": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        log_error("phone_login", e)
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
 # Wedding Routes
