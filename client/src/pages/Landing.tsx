@@ -533,19 +533,19 @@ export default function Landing({ onOpenApp }: LandingProps) {
               <ul className="space-y-3 text-sm text-muted-foreground mb-6">
                 <li className="flex items-center gap-2">
                   <Lock className="w-4 h-4" />
+                  Guest notifications
+                </li>
+                <li className="flex items-center gap-2">
+                  <Lock className="w-4 h-4" />
+                  Shared album
+                </li>
+                <li className="flex items-center gap-2">
+                  <Lock className="w-4 h-4" />
+                  Custom website
+                </li>
+                <li className="flex items-center gap-2">
+                  <Lock className="w-4 h-4" />
                   Vendor marketplace
-                </li>
-                <li className="flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  Payment tracking
-                </li>
-                <li className="flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  Live updates
-                </li>
-                <li className="flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  File storage
                 </li>
                 <li className="flex items-center gap-2">
                   <Lock className="w-4 h-4" />
