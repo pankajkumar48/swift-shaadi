@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, Mail, Lock, User } from "lucide-react";
+import { Mail, Lock, User } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
+import logoImage from "@assets/Content_1024x1024_(1)_(1)_1765442654740.png";
 import { useToast } from "@/hooks/use-toast";
 import { useLoginMutation, useSignupMutation } from "@/hooks/use-auth";
 
@@ -89,9 +90,12 @@ export default function Auth({ onAuth }: AuthProps) {
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-secondary/20 to-background" data-testid="page-auth">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
-            <Heart className="w-8 h-8 text-primary" />
-          </div>
+          <img 
+            src={logoImage} 
+            alt="Swift Shaadi" 
+            className="w-20 h-20 mx-auto mb-4 object-contain"
+            data-testid="img-logo"
+          />
           <h1 className="text-2xl font-serif font-semibold">Swift Shaadi</h1>
           <p className="text-muted-foreground mt-1">Plan your perfect Indian wedding</p>
         </div>

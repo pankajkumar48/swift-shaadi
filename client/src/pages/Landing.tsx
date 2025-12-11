@@ -14,6 +14,7 @@ import {
   X,
   ArrowRight
 } from "lucide-react";
+import logoImage from "@assets/Content_1024x1024_(1)_(1)_1765442654740.png";
 
 interface LandingProps {
   onOpenApp: () => void;
@@ -92,7 +93,10 @@ export default function Landing({ onOpenApp }: LandingProps) {
         }`}
       >
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <span className="text-xl font-semibold text-foreground">Swift Shaadi</span>
+          <div className="flex items-center gap-2">
+            <img src={logoImage} alt="Swift Shaadi" className="w-8 h-8 object-contain" data-testid="img-nav-logo" />
+            <span className="text-xl font-semibold text-foreground">Swift Shaadi</span>
+          </div>
           
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-6">

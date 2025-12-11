@@ -1,5 +1,6 @@
-import { Bell, Settings, Heart } from "lucide-react";
+import { Bell, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import logoImage from "@assets/Content_1024x1024_(1)_(1)_1765442654740.png";
 
 interface HeaderProps {
   weddingName?: string;
@@ -18,9 +19,12 @@ export default function Header({
     <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border" data-testid="header-main">
       <div className="flex items-center justify-between gap-4 h-14 px-4 max-w-7xl mx-auto">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-            <Heart className="w-4 h-4 text-primary" />
-          </div>
+          <img 
+            src={logoImage} 
+            alt="Swift Shaadi" 
+            className="w-8 h-8 object-contain"
+            data-testid="img-header-logo"
+          />
           <h1 className="font-serif text-lg font-medium truncate" data-testid="text-wedding-name">
             {weddingName}
           </h1>

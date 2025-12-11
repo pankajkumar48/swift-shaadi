@@ -65,9 +65,14 @@ Run `supabase_update_guests.sql` to add the `accompanying_count` column to the g
 
 ## User Flow
 1. **Landing Page** (`/`) - Marketing page with features, pricing, testimonials, FAQ
-2. **Auth** (`/app`) - Login/Signup with email and password
+2. **Auth** (`/app`) - Login/Signup with email, password, or Google (via Replit Auth)
 3. **Create Wedding** (`/app`) - Set up wedding with couple names, date, city
 4. **Dashboard** (`/app`) - Main app with bottom navigation for all features
+
+## Assets
+- Logo: `attached_assets/Content_1024x1024_(1)_(1)_1765442654740.png`
+- Favicon: `client/public/favicon.png` (copy of logo)
+- Logo displayed in: Landing page navbar, App header, Auth page
 
 ## Features (MVP)
 - Landing page with marketing content and CTA
