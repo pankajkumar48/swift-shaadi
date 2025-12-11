@@ -52,10 +52,15 @@ export function log(message: string, source = "express") {
   // Set up API proxy to FastAPI
   const apiProxy = createProxyMiddleware({
     target: "http://localhost:8000/api",
-    changeOrigin: true,
+    changeOrigin: false, // Preserve original host header
     on: {
       proxyReq: (proxyReq, req) => {
-        console.log(`[proxy] ${req.method} /api${req.url} -> http://localhost:8000/api${req.url}`);
+        // Forward original host for OAuth redirect URI construction
+        const originalHost = req.headers.host || req.headers['x-forwarded-host'];
+        if (originalHost) {
+          proxyReq.setHeader('x-forwarded-host', originalHost);
+        }
+        console.log(`[proxy] ${req.method} /api${req.url} -> http://localhost:8000/api${req.url} (host: ${originalHost})`);
       },
       error: (err, req, res) => {
         console.error(`[proxy] Error: ${err.message}`);
