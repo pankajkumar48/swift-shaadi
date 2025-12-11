@@ -1,10 +1,14 @@
-from fastapi import FastAPI, HTTPException, Depends, Response, Cookie
+from fastapi import FastAPI, HTTPException, Depends, Response, Cookie, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from typing import Optional
 import uuid
 import hashlib
 import os
 import traceback
+import secrets
+import httpx
+from urllib.parse import urlencode
 
 from .database import supabase
 from .models import (
@@ -16,6 +20,98 @@ from .models import (
     TaskCreate, TaskUpdate, Task,
     BudgetItemCreate, BudgetItemUpdate, BudgetItem,
 )
+
+# Google OAuth Configuration
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "")
+
+# OAuth configuration
+import time
+import hmac
+import base64
+import json
+
+OAUTH_STATE_EXPIRY = 600  # 10 minutes
+
+# SESSION_SECRET is required for secure OAuth state signing
+SESSION_SECRET = os.getenv("SESSION_SECRET")
+if not SESSION_SECRET:
+    # Generate a warning but don't fail - use a temporary secret for dev
+    print("[WARNING] SESSION_SECRET not set - OAuth states won't survive server restarts")
+    SESSION_SECRET = secrets.token_hex(32)
+
+# Track used state nonces with timestamps to prevent replay attacks
+used_state_nonces: dict[str, float] = {}  # nonce -> timestamp when used
+
+
+def create_signed_state(initiator_nonce: str) -> str:
+    """Create a signed OAuth state token with embedded timestamp and client binding"""
+    payload = {
+        "nonce": secrets.token_urlsafe(16),
+        "ts": int(time.time()),
+        "initiator": initiator_nonce  # Binds state to the initiating browser's cookie
+    }
+    payload_json = json.dumps(payload)
+    payload_b64 = base64.urlsafe_b64encode(payload_json.encode()).decode()
+    signature = hmac.new(SESSION_SECRET.encode(), payload_b64.encode(), "sha256").hexdigest()
+    return f"{payload_b64}.{signature}"
+
+
+def cleanup_used_nonces():
+    """Remove expired nonces from the used set"""
+    global used_state_nonces
+    current_time = time.time()
+    expired = [n for n, t in used_state_nonces.items() if current_time - t > OAUTH_STATE_EXPIRY * 2]
+    for n in expired:
+        del used_state_nonces[n]
+
+
+def verify_signed_state(state: str, initiator_cookie: str) -> bool:
+    """Verify a signed OAuth state token, check expiry, enforce single-use, and validate client binding"""
+    global used_state_nonces
+    try:
+        if not initiator_cookie:
+            return False
+            
+        parts = state.split(".")
+        if len(parts) != 2:
+            return False
+        
+        payload_b64, signature = parts
+        expected_sig = hmac.new(SESSION_SECRET.encode(), payload_b64.encode(), "sha256").hexdigest()
+        
+        if not hmac.compare_digest(signature, expected_sig):
+            return False
+        
+        payload_json = base64.urlsafe_b64decode(payload_b64.encode()).decode()
+        payload = json.loads(payload_json)
+        
+        ts = payload.get("ts", 0)
+        nonce = payload.get("nonce", "")
+        initiator = payload.get("initiator", "")
+        
+        # Verify client binding - state must match the cookie set during initiation
+        if not hmac.compare_digest(initiator, initiator_cookie):
+            return False
+        
+        # Check expiry
+        if time.time() - ts > OAUTH_STATE_EXPIRY:
+            return False
+        
+        # Check if nonce was already used (prevent replay attacks)
+        if nonce in used_state_nonces:
+            return False
+        
+        # Mark nonce as used with timestamp for cleanup
+        used_state_nonces[nonce] = time.time()
+        
+        # Periodic cleanup of expired nonces
+        cleanup_used_nonces()
+        
+        return True
+    except Exception:
+        return False
 
 app = FastAPI(title="Swift Shaadi API", version="1.0.0")
 
@@ -58,7 +154,7 @@ async def health_check():
 
 # Auth Routes
 @app.post("/api/auth/signup")
-async def signup(user: UserCreate, response: Response):
+async def signup(user: UserCreate, request: Request, response: Response):
     try:
         existing = supabase.table("users").select("id").eq("email", user.email).execute()
         if existing.data:
@@ -79,7 +175,11 @@ async def signup(user: UserCreate, response: Response):
         
         session_id = str(uuid.uuid4())
         sessions[session_id] = user_id
-        response.set_cookie("session_id", session_id, httponly=True, samesite="lax")
+        
+        host = request.headers.get("host", "localhost:5000")
+        scheme = request.headers.get("x-forwarded-proto", "https" if "replit" in host else "http")
+        is_secure = scheme == "https"
+        response.set_cookie("session_id", session_id, httponly=True, samesite="lax", secure=is_secure)
         
         return {"user": {"id": user_id, "name": user.name, "email": user.email}}
     except HTTPException:
@@ -90,7 +190,7 @@ async def signup(user: UserCreate, response: Response):
 
 
 @app.post("/api/auth/login")
-async def login(credentials: UserLogin, response: Response):
+async def login(credentials: UserLogin, request: Request, response: Response):
     result = supabase.table("users").select("*").eq("email", credentials.email).execute()
     
     if not result.data:
@@ -102,7 +202,11 @@ async def login(credentials: UserLogin, response: Response):
     
     session_id = str(uuid.uuid4())
     sessions[session_id] = user["id"]
-    response.set_cookie("session_id", session_id, httponly=True)
+    
+    host = request.headers.get("host", "localhost:5000")
+    scheme = request.headers.get("x-forwarded-proto", "https" if "replit" in host else "http")
+    is_secure = scheme == "https"
+    response.set_cookie("session_id", session_id, httponly=True, samesite="lax", secure=is_secure)
     
     return {"user": {"id": user["id"], "name": user["name"], "email": user["email"]}}
 
@@ -121,6 +225,159 @@ async def get_me(user_id: str = Depends(get_current_user)):
     if not result.data:
         raise HTTPException(status_code=404, detail="User not found")
     return {"user": result.data[0]}
+
+
+# Google OAuth Routes
+@app.get("/api/auth/google")
+async def google_login(request: Request):
+    """Initiate Google OAuth flow"""
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=500, detail="Google OAuth not configured")
+    
+    # Generate initiator nonce for client binding
+    initiator_nonce = secrets.token_urlsafe(16)
+    
+    # Generate signed state token with client binding
+    state = create_signed_state(initiator_nonce)
+    
+    # Build the redirect URI dynamically based on the request
+    host = request.headers.get("host", "localhost:5000")
+    scheme = request.headers.get("x-forwarded-proto", "https" if "replit" in host else "http")
+    redirect_uri = GOOGLE_REDIRECT_URI or f"{scheme}://{host}/api/auth/google/callback"
+    is_secure = scheme == "https"
+    
+    # Build Google authorization URL
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "access_type": "offline",
+        "prompt": "consent",
+    }
+    auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+    
+    # Set initiator cookie for CSRF protection (binds state to this browser)
+    response = RedirectResponse(url=auth_url)
+    response.set_cookie(
+        "oauth_initiator",
+        initiator_nonce,
+        httponly=True,
+        samesite="lax",
+        secure=is_secure,
+        max_age=OAUTH_STATE_EXPIRY,
+    )
+    return response
+
+
+@app.get("/api/auth/google/callback")
+async def google_callback(
+    request: Request, 
+    code: str = None, 
+    state: str = None, 
+    error: str = None,
+    oauth_initiator: Optional[str] = Cookie(None)
+):
+    """Handle Google OAuth callback"""
+    if error:
+        return RedirectResponse(url="/app?error=google_auth_denied")
+    
+    if not code or not state:
+        return RedirectResponse(url="/app?error=missing_params")
+    
+    # Verify signed state token with client binding (handles expiry, CSRF, and replay protection)
+    if not verify_signed_state(state, oauth_initiator or ""):
+        return RedirectResponse(url="/app?error=invalid_state")
+    
+    # Build the redirect URI dynamically
+    host = request.headers.get("host", "localhost:5000")
+    scheme = request.headers.get("x-forwarded-proto", "https" if "replit" in host else "http")
+    redirect_uri = GOOGLE_REDIRECT_URI or f"{scheme}://{host}/api/auth/google/callback"
+    
+    try:
+        # Exchange code for tokens
+        async with httpx.AsyncClient() as client:
+            token_response = await client.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "code": code,
+                    "grant_type": "authorization_code",
+                    "redirect_uri": redirect_uri,
+                },
+            )
+            
+            if token_response.status_code != 200:
+                print(f"[ERROR] Token exchange failed: {token_response.text}")
+                return RedirectResponse(url="/app?error=token_exchange_failed")
+            
+            tokens = token_response.json()
+            access_token = tokens.get("access_token")
+            
+            # Get user info from Google
+            userinfo_response = await client.get(
+                "https://www.googleapis.com/oauth2/v2/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            
+            if userinfo_response.status_code != 200:
+                print(f"[ERROR] User info failed: {userinfo_response.text}")
+                return RedirectResponse(url="/app?error=userinfo_failed")
+            
+            userinfo = userinfo_response.json()
+            email = userinfo.get("email")
+            name = userinfo.get("name", email.split("@")[0] if email else "User")
+            google_id = userinfo.get("id")
+            
+            if not email:
+                return RedirectResponse(url="/app?error=no_email")
+            
+            # Check if user exists
+            existing = supabase.table("users").select("*").eq("email", email).execute()
+            
+            if existing.data:
+                user = existing.data[0]
+                user_id = user["id"]
+            else:
+                # Create new user
+                user_id = str(uuid.uuid4())
+                new_user = {
+                    "id": user_id,
+                    "name": name,
+                    "email": email,
+                    "password": hash_password(f"google_{google_id}_{secrets.token_hex(16)}"),
+                    "google_id": google_id,
+                }
+                result = supabase.table("users").insert(new_user).execute()
+                if not result.data:
+                    return RedirectResponse(url="/app?error=user_creation_failed")
+            
+            # Create session
+            session_id = str(uuid.uuid4())
+            sessions[session_id] = user_id
+            
+            # Redirect to app with session cookie
+            response = RedirectResponse(url="/app", status_code=302)
+            
+            # Set secure flag based on protocol
+            is_secure = scheme == "https"
+            response.set_cookie(
+                "session_id", 
+                session_id, 
+                httponly=True, 
+                samesite="lax",
+                secure=is_secure,
+                max_age=60 * 60 * 24 * 7,  # 7 days
+            )
+            # Delete the oauth_initiator cookie after successful use
+            response.delete_cookie("oauth_initiator")
+            return response
+            
+    except Exception as e:
+        log_error("google_callback", e)
+        return RedirectResponse(url="/app?error=oauth_error")
 
 
 # Wedding Routes

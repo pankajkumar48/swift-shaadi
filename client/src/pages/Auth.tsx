@@ -116,7 +116,7 @@ export default function Auth({ onAuth }: AuthProps) {
                     type="button"
                     variant="outline"
                     className="w-full"
-                    onClick={() => window.location.href = "/api/login"}
+                    onClick={() => window.location.href = "/api/auth/google"}
                     data-testid="button-google-login"
                   >
                     <SiGoogle className="w-4 h-4 mr-2" />
@@ -180,7 +180,7 @@ export default function Auth({ onAuth }: AuthProps) {
                     type="button"
                     variant="outline"
                     className="w-full"
-                    onClick={() => window.location.href = "/api/login"}
+                    onClick={() => window.location.href = "/api/auth/google"}
                     data-testid="button-google-signup"
                   >
                     <SiGoogle className="w-4 h-4 mr-2" />

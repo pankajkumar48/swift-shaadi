@@ -32,7 +32,9 @@ Swift Shaadi is a mobile-first Progressive Web App for Indian wedding planning. 
 ## Environment Variables Required
 - `SUPABASE_URL`: Supabase project URL
 - `SUPABASE_ANON_KEY`: Supabase anonymous key
-- `SESSION_SECRET`: Session encryption secret
+- `GOOGLE_CLIENT_ID`: Google OAuth Client ID (from Google Cloud Console)
+- `GOOGLE_CLIENT_SECRET`: Google OAuth Client Secret (from Google Cloud Console)
+- `GOOGLE_REDIRECT_URI`: (Optional) Custom redirect URI for OAuth callback
 
 ## Running the App
 1. Run `npm run dev` - This starts Express on port 5000 AND automatically spawns FastAPI on port 8000
@@ -65,7 +67,7 @@ Run `supabase_update_guests.sql` to add the `accompanying_count` column to the g
 
 ## User Flow
 1. **Landing Page** (`/`) - Marketing page with features, pricing, testimonials, FAQ
-2. **Auth** (`/app`) - Login/Signup with email, password, or Google (via Replit Auth)
+2. **Auth** (`/app`) - Login/Signup with email, password, or Google (via Direct Google OAuth)
 3. **Create Wedding** (`/app`) - Set up wedding with couple names, date, city
 4. **Dashboard** (`/app`) - Main app with bottom navigation for all features
 
@@ -92,6 +94,7 @@ Run `supabase_update_guests.sql` to add the `accompanying_count` column to the g
 
 ## API Endpoints
 - Auth: `/api/auth/signup`, `/api/auth/login`, `/api/auth/logout`, `/api/auth/me`
+- Google OAuth: `/api/auth/google`, `/api/auth/google/callback`
 - Weddings: `/api/weddings`, `/api/weddings/:id`
 - Guests: `/api/weddings/:id/guests`, `/api/guests/:id`
 - Events: `/api/weddings/:id/events`, `/api/events/:id`
@@ -99,3 +102,14 @@ Run `supabase_update_guests.sql` to add the `accompanying_count` column to the g
 - Budget: `/api/weddings/:id/budget`, `/api/budget/:id`
 - Team: `/api/weddings/:id/team`, `/api/team/:id`
 - Stats: `/api/weddings/:id/stats`
+
+## Google OAuth Setup
+1. Go to https://console.cloud.google.com
+2. Create a new project (or use existing)
+3. Go to "APIs & Services" → "Credentials"
+4. Click "Create Credentials" → "OAuth Client ID"
+5. Choose "Web Application"
+6. Add Authorized redirect URIs:
+   - `https://your-app-name.replit.app/api/auth/google/callback`
+   - For local testing: `http://localhost:5000/api/auth/google/callback`
+7. Copy Client ID and Client Secret to Replit Secrets

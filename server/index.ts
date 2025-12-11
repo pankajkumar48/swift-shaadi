@@ -4,7 +4,6 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { spawn } from "child_process";
 import { createProxyMiddleware } from "http-proxy-middleware";
-import { setupAuth } from "./replitAuth";
 
 declare module "http" {
   interface IncomingMessage {
@@ -50,10 +49,7 @@ export function log(message: string, source = "express") {
 }
 
 (async () => {
-  // Set up Replit Auth routes FIRST (before proxy)
-  await setupAuth(app);
-  
-  // IMPORTANT: Register API proxy AFTER auth routes
+  // Set up API proxy to FastAPI
   const apiProxy = createProxyMiddleware({
     target: "http://localhost:8000/api",
     changeOrigin: true,
@@ -67,14 +63,8 @@ export function log(message: string, source = "express") {
     }
   });
 
-  // Exclude auth routes from proxy - they're handled by Express
-  app.use("/api", (req, res, next) => {
-    const authRoutes = ["/login", "/logout", "/callback", "/auth/user"];
-    if (authRoutes.some(route => req.path === route || req.path.startsWith(route))) {
-      return next("route");
-    }
-    return apiProxy(req, res, next);
-  });
+  // Proxy all /api routes to FastAPI (Google OAuth is now handled by FastAPI)
+  app.use("/api", apiProxy);
 
   // Body parsers AFTER proxy to avoid consuming the request body before proxying
   app.use(
