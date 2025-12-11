@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Wallet } from "lucide-react";
+import { Plus, Wallet, Pencil } from "lucide-react";
 import BudgetCard from "@/components/BudgetCard";
 import EmptyState from "@/components/EmptyState";
 import BudgetFormDialog from "@/components/BudgetFormDialog";
@@ -142,16 +142,16 @@ export default function Budget() {
           <CardTitle className="text-sm font-medium text-muted-foreground">Total Wedding Budget</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-baseline gap-2">
+          <div className="flex items-center gap-3">
             <span className="text-3xl font-bold">{formatCurrency(totalBudget)}</span>
             <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-xs"
+              variant="outline" 
+              size="sm"
               onClick={() => setShowTotalDialog(true)}
               data-testid="button-edit-total-budget"
             >
-              Edit
+              <Pencil className="w-3 h-3 mr-1" />
+              Edit Budget
             </Button>
           </div>
 
