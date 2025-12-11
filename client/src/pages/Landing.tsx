@@ -243,9 +243,7 @@ export default function Landing({ onOpenApp }: LandingProps) {
       {/* Strip */}
       <section className="py-6 bg-accent/20">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            Already helping Indian families plan roka, mehendi, sangeet, wedding, and reception in one place.
-          </p>
+          <p className="text-sm text-muted-foreground">Made for Indian weddings, from roka to reception.</p>
         </div>
       </section>
       {/* Problem Section */}
