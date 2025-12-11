@@ -660,7 +660,6 @@ export default function Landing({ onOpenApp }: LandingProps) {
                 Contact
               </a>
               <span className="cursor-default">Privacy</span>
-              <span className="cursor-default">Terms</span>
             </div>
           </div>
         </div>
