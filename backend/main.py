@@ -244,8 +244,30 @@ async def google_login(request: Request):
     # Debug: log all relevant headers
     print(f"[DEBUG] OAuth Headers: host={request.headers.get('host')}, x-forwarded-host={request.headers.get('x-forwarded-host')}, origin={request.headers.get('origin')}, referer={request.headers.get('referer')}")
     
-    # Prefer x-forwarded-host to get the original domain when behind proxy
-    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost:5000")
+    # Try to get the original domain from various headers
+    # Priority: referer (most reliable for custom domains) > origin > x-forwarded-host > host
+    host = None
+    referer = request.headers.get("referer", "")
+    origin = request.headers.get("origin", "")
+    
+    # Extract host from referer URL (e.g., "https://swiftshaadi.com/app" -> "swiftshaadi.com")
+    if referer and ("swiftshaadi.com" in referer or "swiftshaadi.replit.app" in referer):
+        from urllib.parse import urlparse
+        parsed = urlparse(referer)
+        if parsed.netloc:
+            host = parsed.netloc
+    
+    # Fallback to origin header
+    if not host and origin:
+        from urllib.parse import urlparse
+        parsed = urlparse(origin)
+        if parsed.netloc:
+            host = parsed.netloc
+    
+    # Fallback to x-forwarded-host or host header
+    if not host:
+        host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost:5000")
+    
     scheme = request.headers.get("x-forwarded-proto", "https" if "replit" in host or "swiftshaadi" in host else "http")
     redirect_uri = GOOGLE_REDIRECT_URI or f"{scheme}://{host}/api/auth/google/callback"
     is_secure = scheme == "https"
