@@ -173,7 +173,6 @@ export default function Landing({ onOpenApp }: LandingProps) {
           </div>
         )}
       </nav>
-
       {/* Hero Section */}
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-6xl mx-auto">
@@ -182,9 +181,7 @@ export default function Landing({ onOpenApp }: LandingProps) {
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 leading-tight">
                 Wedding planning for Indian families, made simple.
               </h1>
-              <p className="text-lg text-muted-foreground mb-6">
-                Swift Shaadi is a live web app that brings guests, invites, schedules, tasks, and budgets together so everyone stays organised and stress stays low.
-              </p>
+              <p className="text-lg text-muted-foreground mb-6">Because planning your wedding should feel just as joyful as the day itself.</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
                 <Button size="lg" onClick={onOpenApp} data-testid="button-start-planning">
                   Start planning now
@@ -245,7 +242,6 @@ export default function Landing({ onOpenApp }: LandingProps) {
           </div>
         </div>
       </section>
-
       {/* Strip */}
       <section className="py-6 bg-accent/20">
         <div className="max-w-4xl mx-auto px-4 text-center">
@@ -254,7 +250,6 @@ export default function Landing({ onOpenApp }: LandingProps) {
           </p>
         </div>
       </section>
-
       {/* Problem Section */}
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto">
@@ -289,7 +284,6 @@ export default function Landing({ onOpenApp }: LandingProps) {
           </div>
         </div>
       </section>
-
       {/* Solution Section */}
       <section className="py-16 px-4 bg-secondary/20">
         <div className="max-w-4xl mx-auto">
@@ -330,7 +324,6 @@ export default function Landing({ onOpenApp }: LandingProps) {
           </div>
         </div>
       </section>
-
       {/* Feature Highlights Section */}
       <section id="features" className="py-16 px-4">
         <div className="max-w-5xl mx-auto">
@@ -451,7 +444,6 @@ export default function Landing({ onOpenApp }: LandingProps) {
           </div>
         </div>
       </section>
-
       {/* How it Works Section */}
       <section id="how-it-works" className="py-16 px-4 bg-secondary/20">
         <div className="max-w-4xl mx-auto">
@@ -494,7 +486,6 @@ export default function Landing({ onOpenApp }: LandingProps) {
           </div>
         </div>
       </section>
-
       {/* Pricing Section */}
       <section id="pricing" className="py-16 px-4">
         <div className="max-w-3xl mx-auto">
@@ -572,7 +563,6 @@ export default function Landing({ onOpenApp }: LandingProps) {
           </div>
         </div>
       </section>
-
       {/* Testimonials Section */}
       <section className="py-16 px-4 bg-accent/20">
         <div className="max-w-4xl mx-auto">
@@ -604,7 +594,6 @@ export default function Landing({ onOpenApp }: LandingProps) {
           </div>
         </div>
       </section>
-
       {/* FAQ Section */}
       <section id="faq" className="py-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -638,7 +627,6 @@ export default function Landing({ onOpenApp }: LandingProps) {
           </div>
         </div>
       </section>
-
       {/* Final CTA Section */}
       <section className="py-16 px-4 bg-primary/10">
         <div className="max-w-2xl mx-auto text-center">
@@ -654,7 +642,6 @@ export default function Landing({ onOpenApp }: LandingProps) {
           </Button>
         </div>
       </section>
-
       {/* Footer */}
       <footer className="py-8 px-4 border-t">
         <div className="max-w-6xl mx-auto">
