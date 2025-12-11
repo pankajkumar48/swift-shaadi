@@ -14,6 +14,7 @@ import PremiumFeatureCard from "@/components/PremiumFeatureCard";
 
 interface MoreProps {
   onNavigate: (path: string) => void;
+  onLogout: () => void;
 }
 
 interface MenuItem {
@@ -36,7 +37,7 @@ const premiumFeatures = [
   { icon: Download, title: "Export Tools", description: "Export guest lists, budgets & more" },
 ];
 
-export default function More({ onNavigate }: MoreProps) {
+export default function More({ onNavigate, onLogout }: MoreProps) {
   return (
     <div className="p-4 pb-20" data-testid="page-more">
       <h2 className="text-xl font-semibold mb-4">More</h2>
@@ -86,7 +87,7 @@ export default function More({ onNavigate }: MoreProps) {
 
       <Card
         className="p-4 cursor-pointer hover-elevate border-destructive/20"
-        onClick={() => console.log("Logout clicked")}
+        onClick={onLogout}
         data-testid="card-logout"
       >
         <div className="flex items-center gap-3">

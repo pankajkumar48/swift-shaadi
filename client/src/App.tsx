@@ -153,7 +153,7 @@ function MainApp() {
     if (currentPath === "/app/invitations") return <Invitations />;
     if (currentPath === "/app/team") return <Team />;
     if (currentPath === "/app/settings") return <Settings onNavigate={handleNavigate} onLogout={handleLogout} />;
-    if (currentPath === "/app/more") return <More onNavigate={handleNavigate} />;
+    if (currentPath === "/app/more") return <More onNavigate={handleNavigate} onLogout={handleLogout} />;
     return <Dashboard onNavigate={handleNavigate} />;
   };
 
