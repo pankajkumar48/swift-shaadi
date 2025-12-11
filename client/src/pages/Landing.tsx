@@ -656,7 +656,9 @@ export default function Landing({ onOpenApp }: LandingProps) {
               <button onClick={() => scrollToSection("faq")} className="hover:text-foreground transition-colors">
                 FAQ
               </button>
-              <span className="cursor-default">Contact</span>
+              <a href="mailto:contact@swiftshaadi.com" className="hover:text-foreground transition-colors">
+                Contact
+              </a>
               <span className="cursor-default">Privacy</span>
               <span className="cursor-default">Terms</span>
             </div>

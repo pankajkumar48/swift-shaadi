@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export type TeamRole = "owner" | "family_admin" | "helper";
+export type TeamRole = "owner" | "bride" | "groom" | "family_admin" | "helper";
 
 interface TeamMemberCardProps {
   id: string;
@@ -27,6 +27,18 @@ const roleConfig: Record<TeamRole, { label: string; icon: typeof Crown; classNam
     label: "Owner", 
     icon: Crown, 
     className: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+    description: "Full access to all features"
+  },
+  bride: { 
+    label: "Bride", 
+    icon: Crown, 
+    className: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
+    description: "Full access to all features"
+  },
+  groom: { 
+    label: "Groom", 
+    icon: Crown, 
+    className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
     description: "Full access to all features"
   },
   family_admin: { 
@@ -82,7 +94,7 @@ export default function TeamMemberCard({
               <p className="text-sm text-muted-foreground truncate">{email}</p>
             </div>
 
-            {!isCurrentUser && role !== "owner" && (
+            {!isCurrentUser && role !== "owner" && role !== "bride" && role !== "groom" && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="icon" variant="ghost" data-testid={`button-team-menu-${id}`}>
@@ -90,6 +102,12 @@ export default function TeamMemberCard({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onChangeRole?.(id, "bride")}>
+                    Make Bride
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onChangeRole?.(id, "groom")}>
+                    Make Groom
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onChangeRole?.(id, "family_admin")}>
                     Make Family Admin
                   </DropdownMenuItem>

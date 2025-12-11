@@ -82,7 +82,7 @@ Run `supabase_update_guests.sql` to add the `accompanying_count` column to the g
 - Timeline/events CRUD
 - Task planner with status tracking
 - Budget tracker with categories
-- Team role management (Owner/FamilyAdmin/Helper)
+- Team role management (Owner/Bride/Groom/FamilyAdmin/Helper)
 - Invitation message generator with cultural templates
 
 ## Design

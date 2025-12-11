@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Heart, Calendar, LogOut } from "lucide-react";
+import { ArrowLeft, Heart, Calendar, LogOut, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWedding, useUpdateWeddingMutation } from "@/hooks/use-wedding";
 
@@ -175,6 +175,16 @@ export default function Settings({ onNavigate, onLogout }: SettingsProps) {
           data-testid="button-save-settings"
         >
           {updateWeddingMutation.isPending ? "Saving..." : "Save Changes"}
+        </Button>
+
+        <Button 
+          variant="outline" 
+          onClick={() => window.location.href = "mailto:contact@swiftshaadi.com"} 
+          className="w-full"
+          data-testid="button-contact-us"
+        >
+          <Mail className="w-4 h-4 mr-2" />
+          Contact Us
         </Button>
 
         <Button 

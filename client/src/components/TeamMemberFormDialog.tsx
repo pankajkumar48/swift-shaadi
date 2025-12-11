@@ -123,6 +123,8 @@ export default function TeamMemberFormDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      <SelectItem value="bride">Bride</SelectItem>
+                      <SelectItem value="groom">Groom</SelectItem>
                       <SelectItem value="family_admin">Family Admin</SelectItem>
                       <SelectItem value="helper">Helper</SelectItem>
                     </SelectContent>

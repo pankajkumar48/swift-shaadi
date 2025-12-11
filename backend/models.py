@@ -3,7 +3,7 @@ from typing import Optional, Literal
 from datetime import datetime
 
 # Enums as Literals
-TeamRole = Literal["owner", "family_admin", "helper"]
+TeamRole = Literal["owner", "bride", "groom", "family_admin", "helper"]
 GuestSide = Literal["bride", "groom"]
 RsvpStatus = Literal["invited", "going", "not_going", "maybe"]
 TaskStatus = Literal["todo", "in_progress", "done"]
