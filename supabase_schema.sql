@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
   password TEXT NOT NULL,
+  google_id TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
