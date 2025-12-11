@@ -241,11 +241,16 @@ async def google_login(request: Request):
     state = create_signed_state(initiator_nonce)
     
     # Build the redirect URI dynamically based on the request
+    # Debug: log all relevant headers
+    print(f"[DEBUG] OAuth Headers: host={request.headers.get('host')}, x-forwarded-host={request.headers.get('x-forwarded-host')}, origin={request.headers.get('origin')}, referer={request.headers.get('referer')}")
+    
     # Prefer x-forwarded-host to get the original domain when behind proxy
     host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost:5000")
     scheme = request.headers.get("x-forwarded-proto", "https" if "replit" in host or "swiftshaadi" in host else "http")
     redirect_uri = GOOGLE_REDIRECT_URI or f"{scheme}://{host}/api/auth/google/callback"
     is_secure = scheme == "https"
+    
+    print(f"[DEBUG] Using redirect_uri: {redirect_uri}")
     
     # Build Google authorization URL
     params = {
