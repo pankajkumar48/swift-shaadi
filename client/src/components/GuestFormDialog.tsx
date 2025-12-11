@@ -198,9 +198,19 @@ export default function GuestFormDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Group</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Family, Friends" {...field} data-testid="input-guest-group" />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-guest-group">
+                          <SelectValue placeholder="Select group" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Family">Family</SelectItem>
+                        <SelectItem value="Friends">Friends</SelectItem>
+                        <SelectItem value="Colleagues">Colleagues</SelectItem>
+                        <SelectItem value="Others">Others</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
