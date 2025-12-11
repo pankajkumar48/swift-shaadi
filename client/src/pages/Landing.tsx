@@ -178,9 +178,7 @@ export default function Landing({ onOpenApp }: LandingProps) {
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="text-center md:text-left">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 leading-tight">
-                Wedding planning for Indian families, made simple.
-              </h1>
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 leading-tight">All your wedding planning, finally in one app</h1>
               <p className="text-lg text-muted-foreground mb-6">Because planning your wedding should feel just as joyful as the day itself.</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
                 <Button size="lg" onClick={onOpenApp} data-testid="button-start-planning">
