@@ -581,9 +581,7 @@ export default function Landing({ onOpenApp }: LandingProps) {
               <p className="text-xs text-muted-foreground">Groom, Delhi</p>
             </Card>
             <Card className="p-5">
-              <p className="text-sm text-muted-foreground mb-4 italic">
-                "The invite templates saved us so much time with relatives."
-              </p>
+              <p className="text-sm text-muted-foreground mb-4 italic">"The RSVP tracker saved us so much time with relatives."</p>
               <p className="font-medium text-sm">Anjali K.</p>
               <p className="text-xs text-muted-foreground">Bride, Bangalore</p>
             </Card>
