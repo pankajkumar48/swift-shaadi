@@ -120,9 +120,14 @@ def log_error(context: str, error: Exception):
     print(f"[ERROR] {context}: {str(error)}")
     traceback.print_exc()
 
+# Configure CORS - allow all origins for now, but in production you should restrict this
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+if allowed_origins == ["*"]:
+    allowed_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
