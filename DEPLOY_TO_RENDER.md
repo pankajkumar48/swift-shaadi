@@ -112,10 +112,8 @@ Fill in the following settings:
 
 **Build Command** (copy exactly):
 ```bash
-pip install -r requirements.txt && npm install --include=dev && npm run build
+pip install -r requirements.txt && npm install && npm run build
 ```
-
-**Note**: `--include=dev` is required because build tools (tsx, esbuild, vite) are in devDependencies.
 
 ### 4.3 Add Environment Variables
 
