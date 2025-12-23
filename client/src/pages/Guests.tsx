@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Link2 } from "lucide-react";
 import GuestCard, { RsvpStatus, Side } from "@/components/GuestCard";
 import EmptyState from "@/components/EmptyState";
 import GuestFormDialog from "@/components/GuestFormDialog";
@@ -37,6 +37,7 @@ export default function Guests() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sideFilter, setSideFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [showCopiedNotification, setShowCopiedNotification] = useState(false);
 
   const { data: guestsData, isLoading } = useGuestsQuery(weddingId);
   const createGuestMutation = useCreateGuestMutation();
@@ -121,6 +122,21 @@ export default function Guests() {
     }
   };
 
+  const handleCopyInviteLink = async () => {
+    if (!weddingId) return;
+    const inviteLink = `${window.location.origin}/weddings/${weddingId}/invitation`;
+
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setShowCopiedNotification(true);
+      setTimeout(() => {
+        setShowCopiedNotification(false);
+      }, 3000);
+    } catch {
+      toast({ title: "Error", description: "Failed to copy link", variant: "destructive" });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-4 pb-20" data-testid="page-guests">
@@ -140,13 +156,36 @@ export default function Guests() {
 
   return (
     <div className="p-4 pb-20" data-testid="page-guests">
-      <div className="flex items-center justify-between gap-4 mb-4">
-        <h2 className="text-xl font-semibold">Guests</h2>
-        <Button onClick={() => setShowAddDialog(true)} data-testid="button-add-guest">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Guest
-        </Button>
+      <div className="mb-4">
+        <div className="flex items-center justify-between gap-4 mb-3">
+          <h2 className="text-xl font-semibold">Guests</h2>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button
+            onClick={handleCopyInviteLink}
+            variant="outline"
+            className="w-full sm:w-auto"
+            data-testid="button-copy-invite"
+          >
+            <Link2 className="w-4 h-4 mr-2" />
+            Copy invite link
+          </Button>
+          <Button
+            onClick={() => setShowAddDialog(true)}
+            className="w-full sm:w-auto"
+            data-testid="button-add-guest"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Guest
+          </Button>
+        </div>
       </div>
+
+      {showCopiedNotification && (
+        <div className="fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg animate-in fade-in slide-in-from-top-2 duration-300 z-50">
+          Invite link copied to clipboard!
+        </div>
+      )}
 
       <div className="space-y-3 mb-4">
         <div className="relative">

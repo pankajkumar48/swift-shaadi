@@ -9,6 +9,7 @@ import traceback
 import secrets
 import httpx
 from urllib.parse import urlencode
+from dotenv import load_dotenv
 
 from .database import supabase
 from .models import (
@@ -20,6 +21,10 @@ from .models import (
     TaskCreate, TaskUpdate, Task,
     BudgetItemCreate, BudgetItemUpdate, BudgetItem,
 )
+
+
+load_dotenv()
+
 
 # Google OAuth Configuration
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")

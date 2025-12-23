@@ -21,6 +21,7 @@ import Settings from "@/pages/Settings";
 import More from "@/pages/More";
 import Auth from "@/pages/Auth";
 import CreateWedding from "@/pages/CreateWedding";
+import InvitationResponse from "@/pages/InvitationResponse";
 
 type AppState = "loading" | "auth" | "create-wedding" | "app";
 
@@ -197,6 +198,7 @@ function AppContent() {
   return (
     <Switch>
       <Route path="/" component={LandingPage} />
+      <Route path="/weddings/:weddingId/invitation" component={InvitationResponse} />
       <Route path="/app" component={MainApp} />
       <Route path="/app/:rest*" component={MainApp} />
       <Route component={LandingPage} />
