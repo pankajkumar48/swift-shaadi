@@ -32,7 +32,7 @@ function MainApp() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const currentPath = location.startsWith("/app") ? location : "/app";
+  const currentPath = location;
 
   const { data: authData, isLoading: authLoading, error: authError, isError: authIsError } = useQuery<{ user: User } | null>({
     queryKey: ["/api/auth/me"],
@@ -96,8 +96,7 @@ function MainApp() {
   };
 
   const handleNavigate = (path: string) => {
-    const appPath = path.startsWith("/app") ? path : `/app${path === "/" ? "" : path}`;
-    setLocation(appPath);
+    setLocation(path);
   };
 
   const handleLogout = async () => {
@@ -144,26 +143,26 @@ function MainApp() {
   }
 
   const getPageFromPath = () => {
-    if (currentPath === "/app" || currentPath === "/app/") {
+    if (currentPath === "/" || currentPath === "") {
       return <Dashboard onNavigate={handleNavigate} />;
     }
-    if (currentPath === "/app/guests") return <Guests />;
-    if (currentPath === "/app/timeline") return <Timeline />;
-    if (currentPath === "/app/tasks") return <Tasks />;
-    if (currentPath === "/app/budget") return <Budget />;
-    if (currentPath === "/app/invitations") return <Invitations />;
-    if (currentPath === "/app/team") return <Team />;
-    if (currentPath === "/app/settings") return <Settings onNavigate={handleNavigate} onLogout={handleLogout} />;
-    if (currentPath === "/app/more") return <More onNavigate={handleNavigate} onLogout={handleLogout} />;
+    if (currentPath === "/guests") return <Guests />;
+    if (currentPath === "/timeline") return <Timeline />;
+    if (currentPath === "/tasks") return <Tasks />;
+    if (currentPath === "/budget") return <Budget />;
+    if (currentPath === "/invitations") return <Invitations />;
+    if (currentPath === "/team") return <Team />;
+    if (currentPath === "/settings") return <Settings onNavigate={handleNavigate} onLogout={handleLogout} />;
+    if (currentPath === "/more") return <More onNavigate={handleNavigate} onLogout={handleLogout} />;
     return <Dashboard onNavigate={handleNavigate} />;
   };
 
   return (
     <WeddingContext.Provider value={{ wedding, setWedding }}>
       <div className="min-h-screen bg-background" data-testid="app-container">
-        <Header 
+        <Header
           weddingName={wedding?.couple_names || "Your Wedding"}
-          onSettingsClick={() => handleNavigate("/app/settings")}
+          onSettingsClick={() => handleNavigate("/settings")}
           onNotificationsClick={() => console.log("Notifications")}
         />
         <main className="pb-16">
@@ -181,9 +180,9 @@ function MainApp() {
 
 function LandingPage() {
   const [, setLocation] = useLocation();
-  
+
   const handleOpenApp = () => {
-    setLocation("/app");
+    setLocation("/");
   };
 
   return (
@@ -197,11 +196,9 @@ function LandingPage() {
 function AppContent() {
   return (
     <Switch>
-      <Route path="/" component={LandingPage} />
       <Route path="/weddings/:weddingId/invitation" component={InvitationResponse} />
-      <Route path="/app" component={MainApp} />
-      <Route path="/app/:rest*" component={MainApp} />
-      <Route component={LandingPage} />
+      <Route path="/" component={MainApp} />
+      <Route path="/:rest*" component={MainApp} />
     </Switch>
   );
 }

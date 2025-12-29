@@ -187,7 +187,7 @@ async def signup(user: UserCreate, request: Request, response: Response):
         sessions[session_id] = user_id
         
         host = request.headers.get("host", "localhost:5000")
-        scheme = request.headers.get("x-forwarded-proto", "https" if "replit" in host else "http")
+        scheme = request.headers.get("x-forwarded-proto", "https" if host != "localhost:5000" else "http")
         is_secure = scheme == "https"
         response.set_cookie("session_id", session_id, httponly=True, samesite="lax", secure=is_secure)
         
@@ -212,12 +212,12 @@ async def login(credentials: UserLogin, request: Request, response: Response):
     
     session_id = str(uuid.uuid4())
     sessions[session_id] = user["id"]
-    
+
     host = request.headers.get("host", "localhost:5000")
-    scheme = request.headers.get("x-forwarded-proto", "https" if "replit" in host else "http")
+    scheme = request.headers.get("x-forwarded-proto", "https" if host != "localhost:5000" else "http")
     is_secure = scheme == "https"
     response.set_cookie("session_id", session_id, httponly=True, samesite="lax", secure=is_secure)
-    
+
     return {"user": {"id": user["id"], "name": user["name"], "email": user["email"]}}
 
 
@@ -261,7 +261,7 @@ async def google_login(request: Request):
     origin = request.headers.get("origin", "")
     
     # Extract host from referer URL (e.g., "https://swiftshaadi.com/app" -> "swiftshaadi.com")
-    if referer and ("swiftshaadi.com" in referer or "swiftshaadi.replit.app" in referer):
+    if referer and "swiftshaadi.com" in referer:
         from urllib.parse import urlparse
         parsed = urlparse(referer)
         if parsed.netloc:
@@ -278,7 +278,7 @@ async def google_login(request: Request):
     if not host:
         host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost:5000")
     
-    scheme = request.headers.get("x-forwarded-proto", "https" if "replit" in host or "swiftshaadi" in host else "http")
+    scheme = request.headers.get("x-forwarded-proto", "https" if "swiftshaadi" in host else "http")
     # Always use dynamic redirect URI for multi-domain support (ignore GOOGLE_REDIRECT_URI env var)
     redirect_uri = f"{scheme}://{host}/api/auth/google/callback"
     is_secure = scheme == "https"
@@ -332,7 +332,7 @@ async def google_callback(
     # Build the redirect URI dynamically
     # Prefer x-forwarded-host to get the original domain when behind proxy
     host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost:5000")
-    scheme = request.headers.get("x-forwarded-proto", "https" if "replit" in host or "swiftshaadi" in host else "http")
+    scheme = request.headers.get("x-forwarded-proto", "https" if "swiftshaadi" in host else "http")
     # Always use dynamic redirect URI for multi-domain support
     redirect_uri = f"{scheme}://{host}/api/auth/google/callback"
     

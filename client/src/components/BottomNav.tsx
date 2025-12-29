@@ -7,12 +7,12 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: Home, label: "Home", path: "/app" },
-  { icon: Users, label: "Guests", path: "/app/guests" },
-  { icon: Calendar, label: "Timeline", path: "/app/timeline" },
-  { icon: CheckSquare, label: "Tasks", path: "/app/tasks" },
-  { icon: Wallet, label: "Budget", path: "/app/budget" },
-  { icon: MoreHorizontal, label: "More", path: "/app/more" },
+  { icon: Home, label: "Home", path: "/" },
+  { icon: Users, label: "Guests", path: "/guests" },
+  { icon: Calendar, label: "Timeline", path: "/timeline" },
+  { icon: CheckSquare, label: "Tasks", path: "/tasks" },
+  { icon: Wallet, label: "Budget", path: "/budget" },
+  { icon: MoreHorizontal, label: "More", path: "/more" },
 ];
 
 interface BottomNavProps {
@@ -25,9 +25,9 @@ export default function BottomNav({ currentPath, onNavigate }: BottomNavProps) {
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50" data-testid="nav-bottom">
       <div className="flex justify-around items-center h-16 max-w-lg mx-auto px-2">
         {navItems.map((item) => {
-          const isActive = currentPath === item.path || 
-            (item.path === "/app" && (currentPath === "/app" || currentPath === "/app/")) ||
-            (item.path !== "/app" && currentPath.startsWith(item.path));
+          const isActive = currentPath === item.path ||
+            (item.path === "/" && (currentPath === "/" || currentPath === "")) ||
+            (item.path !== "/" && currentPath.startsWith(item.path));
           const Icon = item.icon;
           
           return (
